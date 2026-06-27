@@ -1,0 +1,7 @@
+[package]
+name = "DivaFFMPEG"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+charmed_lipgloss = { package = "charmed-lipgloss", version = "0.1.2" }
