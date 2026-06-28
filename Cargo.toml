@@ -4,4 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-charmed_lipgloss = { package = "charmed-lipgloss", version = "0.1.2" }
+lipgloss = { package = "charmed-lipgloss", version = "0.1.2" }
+crossterm = "0.27"
+ratatui = { version = "0.30.2", features = ["all-widgets"] }
+ansi-to-tui = "8.0.1"
+url = "2.5.8"
