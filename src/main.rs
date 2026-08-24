@@ -1,4 +1,4 @@
-use std::io;
+use std::{fs::File, io::{self, Stdout}, rc::Rc};
 use ansi_to_tui::IntoText as _;
 use std::time::Duration;
 use crossterm::{
@@ -8,73 +8,132 @@ use crossterm::{
 };
 use ratatui::prelude::*;
 use ratatui::widgets::*;
-use ratatui::text::Span;
-use ratatui::prelude::Stylize;
+
+use std::fs::OpenOptions;
+use std::io::Write;
+use chrono::Utc;
+
+mod reusable_widgets;
 mod styles;
 
 fn main() -> Result<(), io::Error> {
     enable_raw_mode()?;
-    let mut stdout = io::stdout();
-
+    let mut stdout: Stdout = io::stdout();
+    /*
+    The way 'execute!(stdout, EnterAlternateScreen)?;' works is by pushing invisible ascii
+    characters on the screen clearing chatter that was released from previous
+    use including compiling the .exe or any other related executions and. E.g., \x1b[?1049h
+    */
     execute!(stdout, EnterAlternateScreen)?;
 
-    let backend = CrosstermBackend::new(stdout);
-    let mut terminal = Terminal::new(backend)?;
-    
-    // start splash page
+    /*
+    This uses the standard write and file opening crates, as well as the chrono package to
+    accurately create a .log file that can be written to during a session of this terminal application.
+    */
+    let filename: String = format!("log/DivaFFMPEG-{}.log", Utc::now().format("%Y-%m-%d_%H-%M-%S"));
+    let mut _file: File = OpenOptions::new()
+    .append(true)
+    .create(true)
+    .open(&filename)?;
 
-    // mid business logic
-    let mut trigger_exit_terminal = false;
+    // Prevent log spamming.
+    let mut last_logged_status = String::new();
+
+    let backend: CrosstermBackend<Stdout> = CrosstermBackend::new(stdout);
+    let mut terminal: Terminal<CrosstermBackend<Stdout>> = Terminal::new(backend)?;
+    
+    let mut safe_trigger_exit_terminal: bool = false;
 
     loop 
     {
-        terminal.draw(|f| {
-            let size = f.area();
+        terminal.draw( |f| {
+            // Creates our termainal frame.
+            let size: Rect = f.area();
+            
+            /*
+            The goal of this screen is to serve as a splash screen for a user who is trying to exit the TUI.
+            Directions on how to restore the state previous to pressing q outside of a text input situation
+            are displayed. External links to app support and developer socials are also provided.
+            */
+            if safe_trigger_exit_terminal {
+                    let outer: Rc<[Rect]> = Layout::default()
+                        .direction(Direction::Vertical)
+                        .constraints([
+                        Constraint::Length(1),              // footer, directly underneath
+                        Constraint::Fill(1),                // footer is exactly 1 line
+                        ])
+                        .split(size);
 
-            let credit_area = Rect {
-                x: size.x,
-                y: size.y + size.height - 1, // last line
-                width: size.width,
-                height: 1,
-            };
+                    let exit_page: Paragraph<'_> = Paragraph::new(styles::default().render(
+                        "Press e to return.
+                        \nPress q again to exit! 💋").as_bytes().into_text().unwrap());
 
-            if trigger_exit_terminal {
-                let styled_content = styles::exit_screen().render("Press q again to exit! 💋");
-                let ansi_content = styled_content.as_bytes().into_text().unwrap();
-                f.render_widget(Paragraph::new(ansi_content), size);
+                    f.render_widget(exit_page, outer[0]);
+                    f.render_widget(reusable_widgets::social_footer_hyperlinks(), outer[1]);
+                
+                    if last_logged_status != "Exit Screen".to_string() {
+                    let _ = writeln!(_file, "{}", format!("Entered the exit screen at {}.", Utc::now().format("%H-%M-%S")));
+                    last_logged_status = "Exit Screen".to_string();
+                }
             } else {
-                // Introduction
-                let raw_string = "Welcome to Diva FFMPEG!\nStylish but functional ffmpeg wrapper 💅\nBy Marqed4";
-                let styled_content = styles::intro().render(&raw_string);
-                let ansi_content = styled_content.as_bytes().into_text().unwrap();
-                f.render_widget(Paragraph::new(ansi_content), size);
+                /*
+                The goal of this screen is to serve as a splash screen for those who open the app.
+                A welcoming text, input directions, and external links to app support and
+                developer socials should be shown.
+                */
+                let outer: Rc<[Rect]> = Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints([
+                    Constraint::Min(3),      // intro text needs at least 3 lines
+                    Constraint::Length(1),   // footer is exactly 1 line
+                    ])
+                    .split(size);
 
-                // Introduction Options
-                let raw_string = "Press Q to escape\nPress Enter/↵";
+                let introduction: Paragraph<'_> = Paragraph::new(styles::default().render(
+                    "Welcome to Diva FFMPEG!
+                \nStylish but functional ffmpeg wrapper 💅
+                \nBy Marqed4").as_bytes().into_text().unwrap());
 
-                // Credits: TRYING TO ACHIEVE HYPERTEXT...
-                // let link = Link::new(
-                //     Span::from("By Marqed4").blue().underlined(),
-                //     "https://github.com/Marqed4",
-                // );
-                // f.render_widget(link, credit_area);
+                f.render_widget(introduction, outer[0]);
+                f.render_widget(reusable_widgets::social_footer_hyperlinks(), outer[1]);
+
+                if last_logged_status != "Start Screen".to_string() {
+                    let _ = writeln!(_file, "{}", format!("Entered the start screen at {}.", Utc::now().format("%H-%M-%S")));
+                    last_logged_status = "Start Screen".to_string();
+                }
+
             }
         })?;
 
-        // Exit Terminal Logic
+        // The purpose of this block is to catch key strokes that trigger events and change code state.
         if event::poll(Duration::from_millis(100))? {
             if let Event::Key(k) = event::read()? {
                 match k.code {
-                    KeyCode::Char('q') if !trigger_exit_terminal => trigger_exit_terminal = true,
-                    KeyCode::Char('q') if trigger_exit_terminal => break, // second press exits
-                    KeyCode::Esc => break, // or just exit immediately
+                    KeyCode::Char('q') if !safe_trigger_exit_terminal => 
+                    {
+                        safe_trigger_exit_terminal = true;
+                        writeln!(_file, "{}", format!("State: 'safe_trigger_exit' became {} at {} because {:?} was pressed so the prompt to close the application was initiated.",
+                        safe_trigger_exit_terminal, Utc::now().format("%H-%M-%S"), k.code))?;
+                        let _ = event::read()?;
+                    },
+                    KeyCode::Char('q') if safe_trigger_exit_terminal =>
+                    {
+                        writeln!(_file, "{}", format!("State: 'trigger_exit' became {} at {} because {:?} was pressed so the application was closed.",
+                        safe_trigger_exit_terminal, Utc::now().format("%H-%M-%S"), k.code))?;
+                        break;
+                    },
+                    KeyCode::Char('e') if safe_trigger_exit_terminal =>
+                    {
+                        safe_trigger_exit_terminal = false;
+                        writeln!(_file, "{}", format!("State: 'trigger_exit' became {} at {} because {:?} was pressed.",
+                        safe_trigger_exit_terminal, Utc::now().format("%H-%M-%S"), k.code))?;
+                    },
                     _ => {}
                 }
             }
         }
     }
 
-    // end
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
     terminal.show_cursor()?;

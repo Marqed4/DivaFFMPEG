@@ -1,30 +1,19 @@
 use lipgloss::prelude::*;
 
-pub fn intro() -> Style {
+pub fn default() -> Style {
     Style::new()
         .bold()
         .foreground("#ff00ff")
         .background("#1a1a1a")
         .padding((2, 4))
         .border(Border::rounded())
+        .border_style(Border::thick())
         .align(Position::Center)
-        .width(60)
+        .width(150)
+        .height(20)
     }
 
-    // println!("{}", intro.render(
-    // "Welcome to Diva FFMPEG!" + 
-    // "\n" + 
-    // "By https://github.com/Marqed4"));
-
-pub fn exit_screen() -> Style {
-    Style::new()
-        .foreground("#ff0062")
-        .background("#1a1a1a")
-        .padding((2, 4))
-        .width(60)
-}
-
-pub fn header() -> Style {
+pub fn link() -> Style {
      Style::new()
         .bold()
         .foreground("#00e1ff")
