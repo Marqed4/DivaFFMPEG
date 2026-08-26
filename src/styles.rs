@@ -1,6 +1,6 @@
 use lipgloss::prelude::*;
 
-pub fn default() -> Style {
+pub fn title() -> Style {
     Style::new()
         .bold()
         .foreground("#ff00ff")
@@ -9,7 +9,7 @@ pub fn default() -> Style {
         .border(Border::rounded())
         .border_style(Border::thick())
         .align(Position::Center)
-        .width(150)
+        .width(85)
         .height(20)
     }
 
@@ -17,4 +17,12 @@ pub fn link() -> Style {
      Style::new()
         .bold()
         .foreground("#00e1ff")
+}
+
+pub fn directions() -> Style {
+    return Style::new();
+}
+
+pub fn descriptions() -> Style {
+    return Style::new();
 }
