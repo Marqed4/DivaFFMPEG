@@ -1,28 +1,36 @@
 use lipgloss::prelude::*;
 
-pub fn title() -> Style {
-    Style::new()
+pub fn title(width: u16, height: u16) -> Style {
+    return Style::new()
         .bold()
         .foreground("#ff00ff")
-        .background("#1a1a1a")
+        .background("#241e24")
         .padding((2, 4))
-        .border(Border::rounded())
-        .border_style(Border::thick())
         .align(Position::Center)
-        .width(85)
-        .height(20)
+        .width(width)
+        .height(height)
     }
 
-pub fn link() -> Style {
-     Style::new()
+pub fn link(width: u16, height: u16) -> Style {
+    return Style::new()
         .bold()
+        .unset_underline()
+        .foreground("#f1d7f1")
         .foreground("#00e1ff")
+        .align(Position::Center)
+        .width(width)
+        .height(height)
 }
 
-pub fn directions() -> Style {
-    return Style::new();
+pub fn directions(width: u16, height: u16) -> Style {
+    return Style::new()
+    .bold()
+    .background("#383838")
+    .align(Position::Left)
+    .width(width)
+    .height(height)
 }
 
 pub fn descriptions() -> Style {
-    return Style::new();
+    return Style::new()
 }
