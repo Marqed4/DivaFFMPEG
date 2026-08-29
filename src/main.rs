@@ -2,8 +2,15 @@ use std::{fs::File, io::{self, Stdout}, rc::Rc};
 use ansi_to_tui::IntoText as _;
 use std::time::Duration;
 use crossterm::{
-    event::{self, Event, KeyCode}, execute, terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
+    cursor::MoveTo,
+    event::{self, Event, KeyCode},
+    execute,
+    terminal::{EnterAlternateScreen,
+        LeaveAlternateScreen,
+        disable_raw_mode, enable_raw_mode
+    },
 };
+
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 
@@ -13,12 +20,15 @@ use chrono::Utc;
 
 mod home;
 mod video;
-mod reusable_widgets;
 mod styles;
-mod background; 
+mod component;
+mod background;
+mod explanations;
 
 use home::{HomeState, HomeMenuState};
-use video::{VideoProcessingState, DirectionsMenuState};
+use video::{VideoProcessingState, DirectionsMenuState, ConvertState, ConvertField};
+
+use crate::home::HomeState::Video;
 
 //                      <-- SCENE STATE -->
 
@@ -73,6 +83,7 @@ fn main() -> Result<(), io::Error> {
     // Video Processing State
     let mut video_state: VideoProcessingState = VideoProcessingState::Default;
     let mut video_menu: DirectionsMenuState = DirectionsMenuState::new();
+    let mut convert_state: ConvertState = ConvertState::new();
 
     // Drain any stray input events left over from launching the process
     // (e.g. the Enter keystroke used to run the binary) so they don't
@@ -81,11 +92,16 @@ fn main() -> Result<(), io::Error> {
         let _ = event::read()?;
     }
 
+    // Tracks where the clickable footer (if any) landed in the last frame, so a real
+    // OSC-8 hyperlink can be stamped over it after ratatui finishes drawing.
+    let mut footer_rect: Option<Rect> = None;
+
     loop
     {
         terminal.draw(|frame| {
             // Creates our terminal frame.
             let size: Rect = frame.area();
+            footer_rect = None;
 
             match current_scene {
                 //                      <-- EXIT SCENE -->
@@ -121,10 +137,11 @@ fn main() -> Result<(), io::Error> {
                         .split(intro_inner);
 
                     let exit_page: Paragraph<'_> = Paragraph::new(styles::title(inner[0].width, inner[0].height).render(
-                        "Press 'ESC' to return to the PREVIOUS SCREEN.\nPress 'Q' again to EXIT! 💋").as_bytes().into_text().unwrap());
+                        "Press '\x1b[38;5;205m\x1b[1mESC\x1b[22m\x1b[39m' to return to the PREVIOUS SCREEN.\nPress '\x1b[38;5;205m\x1b[1mQ\x1b[22m\x1b[39m' again to EXIT! 💋").as_bytes().into_text().unwrap());
                     
                     frame.render_widget(exit_page, inner[0]);
-                    frame.render_widget(reusable_widgets::social_footer_hyperlinks(inner[3].width, inner[3].height), inner[3]);
+                    frame.render_widget(component::social_footer_hyperlinks(inner[3].width, inner[3].height), inner[3]);
+                    footer_rect = Some(inner[3]);
 
                     if last_logged_state != "Exit Screen" {
                         let _ = writeln!(_file, "Entered the exit screen at {}.", Utc::now().format("%H-%M-%S"));
@@ -169,11 +186,12 @@ fn main() -> Result<(), io::Error> {
                         "Welcome to Diva FFMPEG! \nSlay your multimedia pipeline 💅 \nBy Marqed").as_bytes().into_text().unwrap());
 
                     let directions: Paragraph<'_> = Paragraph::new(styles::center_directions(inner[1].width, inner[1].height).blink().render(
-                        "Press 'ENTER' to get started OR 'Q' to EXIT! 💋").as_bytes().into_text().unwrap());
+                        "Press '\x1b[38;5;218m\x1b[1mENTER\x1b[22m\x1b[39m' to get started OR '\x1b[38;5;205m\x1b[1mQ\x1b[22m\x1b[39m' to EXIT! 💋").as_bytes().into_text().unwrap());
 
                     frame.render_widget(introduction, inner[0]);
                     frame.render_widget(directions, inner[2]);
-                    frame.render_widget(reusable_widgets::social_footer_hyperlinks(inner[4].width, inner[4].height), inner[4]);
+                    frame.render_widget(component::social_footer_hyperlinks(inner[4].width, inner[4].height), inner[4]);
+                    footer_rect = Some(inner[4]);
 
                     if last_logged_state != "Start Screen" {
                         let _ = writeln!(_file, "Entered the start screen at {}.", Utc::now().format("%H-%M-%S"));
@@ -186,23 +204,13 @@ fn main() -> Result<(), io::Error> {
                 // on how to reach and enter abstracted scenes involving image_processing, video_processing, audio_processing, etc.
                 Scene::Home => {
                     home::render(frame, home_state, &home_menu);
-
-                    if last_logged_state != "Home Screen" {
-                        let _ = writeln!(_file, "Entered the home screen at {}.", Utc::now().format("%H-%M-%S"));
-                        last_logged_state = "Home Screen".to_string();
-                    }
                 },
 
                 //                      <-- VIDEO PROCESSING SCENE -->
                 // The goal of this block is to render the portion of this TUI that displays information
                 // and control used for video processing.
                 Scene::VideoProcessing => {
-                    video::render(frame, video_state, &video_menu);
-
-                    if last_logged_state != "Video Processing Screen" {
-                        let _ = writeln!(_file, "Entered the video processing screen at {}.", Utc::now().format("%H-%M-%S"));
-                        last_logged_state = "Video Processing Screen".to_string();
-                    }
+                    video::render(frame, video_state, &video_menu, &mut convert_state);
                 },
 
                 //                      <-- IMAGE PROCESSING SCENE (W.I.P.) -->
@@ -228,11 +236,6 @@ fn main() -> Result<(), io::Error> {
                     ).alignment(Alignment::Center);
 
                     frame.render_widget(wip_text, wip_inner);
-
-                    if last_logged_state != "Image Processing Screen" {
-                        let _ = writeln!(_file, "Entered the image processing screen at {}.", Utc::now().format("%H-%M-%S"));
-                        last_logged_state = "Image Processing Screen".to_string();
-                    }
                 },
 
                 //                      <-- AUDIO PROCESSING SCENE (W.I.P.) -->
@@ -258,44 +261,70 @@ fn main() -> Result<(), io::Error> {
                     ).alignment(Alignment::Center);
 
                     frame.render_widget(wip_text, wip_inner);
-
-                    if last_logged_state != "Audio Processing Screen" {
-                        let _ = writeln!(_file, "Entered the audio processing screen at {}.", Utc::now().format("%H-%M-%S"));
-                        last_logged_state = "Audio Processing Screen".to_string();
-                    }
                 },
             }
         })?;
+
+        // Ratatui's diffed buffer has no notion of OSC-8, so the footer's real, clickable
+        // hyperlink is stamped on directly over the already-drawn text right here.
+        if let Some(rect) = footer_rect {
+            let overlay: String = component::social_footer_overlay(rect.width, rect.height);
+            let backend = terminal.backend_mut();
+            execute!(backend, MoveTo(rect.x, rect.y))?;
+            write!(backend, "{}", overlay)?;
+            std::io::Write::flush(backend)?;
+        }
 
         // The purpose of this block is to catch key strokes that trigger events and change code state.
         if event::poll(Duration::from_millis(10))? {
             if let Event::Key(k) = event::read()? {
                 if k.kind == event::KeyEventKind::Press {
                     match (current_scene, k.code) {
+                        //                      <-- CONVERT FIELD TEXT-EDIT KEY EVENTS -->
+                        // While a text field is being edited, every key (including 'q') must be
+                        // forwarded to the textarea instead of being caught by a global shortcut.
+                        (Scene::VideoProcessing, _)
+                            if video_state == VideoProcessingState::Convert && convert_state.menu.editing =>
+                        {
+                            match k.code {
+                                KeyCode::Enter | KeyCode::Esc => convert_state.menu.editing = false,
+                                _ => {
+                                    match convert_state.menu.focus_field() {
+                                        ConvertField::InputPath => { convert_state.input_file_path.input(Event::Key(k)); },
+                                        ConvertField::OutputPath => { convert_state.output_file_path.input(Event::Key(k)); },
+                                        _ => {},
+                                    }
+                                },
+                            }
+                        },
+
                         //                      <-- GLOBAL EXIT KEY EVENTS -->
                         (scene, KeyCode::Char('q')) if scene != Scene::Exit => {
                             previous_scene = scene;
                             current_scene = Scene::Exit;
-                            writeln!(_file, "State: entered the exit prompt at {} from {:?} because {:?} was pressed.",
-                                Utc::now().format("%H-%M-%S"), previous_scene, k.code)?;
+
+                            writeln!(_file, "State: '{:?}' at {} because '{:?}' was pressed.",
+                                current_scene, Utc::now().format("%H-%M-%S"), k.code)?;
                         },
                         (Scene::Exit, KeyCode::Char('q')) => {
-                            writeln!(_file, "State: application closed at {} because {:?} was pressed.",
-                                Utc::now().format("%H-%M-%S"), k.code)?;
+                            writeln!(_file, "State: '{:?}' at {} because '{:?}' was pressed.",
+                                current_scene, Utc::now().format("%H-%M-%S"), k.code)?;
+
+                            // Stop the application.
                             break;
                         },
                         (Scene::Exit, KeyCode::Esc) => {
                             current_scene = previous_scene;
-                            writeln!(_file, "State: exited the exit prompt at {}, returning to {:?}.",
-                                Utc::now().format("%H-%M-%S"), current_scene)?;
+                            writeln!(_file, "State: '{:?}' at {} because '{:?}' was pressed.",
+                                current_scene, Utc::now().format("%H-%M-%S"), k.code)?;
                         },
 
                         //                      <-- START SCENE KEY EVENTS -->
                         // If the app has just started, entering advances us to the home menu.
                         (Scene::Start, KeyCode::Enter) => {
                             current_scene = Scene::Home;
-                            writeln!(_file, "Entered 'Scene::Home' at {} because {:?} was pressed.",
-                                Utc::now().format("%H-%M-%S"), k.code)?;
+                            writeln!(_file, "State: '{:?}' at {} because '{:?}' was pressed.",
+                                current_scene, Utc::now().format("%H-%M-%S"), k.code)?;
                         },
 
                         //                      <-- HOME SCENE KEY EVENTS -->
@@ -313,36 +342,73 @@ fn main() -> Result<(), io::Error> {
                                 HomeState::Default => Scene::Home,
                             };
 
-                            writeln!(_file, "State: 'home_state' became {:?} at {}, transitioning to {:?}.",
-                                home_state, Utc::now().format("%H-%M-%S"), current_scene)?;
+                            writeln!(_file, "State: '{:?}' at {} because '{:?}' was pressed.",
+                                current_scene, Utc::now().format("%H-%M-%S"), k.code)?;
+                        },
+
+                        //                      <-- AUDIO PROCESSING SCENE KEY EVENTS -->
+                        (Scene::AudioProcessing, KeyCode::Esc) => {
+                            // PLACE THE AUDIO_PROCESSING STATE HERE
+                            current_scene = Scene::Home;
+                            
+                            writeln!(_file, "State: '{:?}' at {} showing {:?} because '{:?}' was pressed.",
+                                current_scene, Utc::now().format("%H-%M-%S"), video_menu, k.code)?;
+                        },
+
+                        //                      <-- CONVERT FIELD NAVIGATION KEY EVENTS -->
+                        // A/D walk focus across the Convert row's fields, W/S cycle the
+                        // focused field's value, ENTER opens a path for editing or runs ffmpeg.
+                        (Scene::VideoProcessing, KeyCode::Left) | (Scene::VideoProcessing, KeyCode::Char('a'))
+                            if video_state == VideoProcessingState::Convert => convert_state.menu.previous(),
+                        (Scene::VideoProcessing, KeyCode::Right) | (Scene::VideoProcessing, KeyCode::Char('d'))
+                            if video_state == VideoProcessingState::Convert => convert_state.menu.next(),
+                        (Scene::VideoProcessing, KeyCode::Up) | (Scene::VideoProcessing, KeyCode::Char('w'))
+                            if video_state == VideoProcessingState::Convert => convert_state.cycle_value(true),
+                        (Scene::VideoProcessing, KeyCode::Down) | (Scene::VideoProcessing, KeyCode::Char('s'))
+                            if video_state == VideoProcessingState::Convert => convert_state.cycle_value(false),
+                        (Scene::VideoProcessing, KeyCode::Enter) if video_state == VideoProcessingState::Convert => {
+                            match convert_state.menu.focus_field() {
+                                ConvertField::InputPath | ConvertField::OutputPath => convert_state.menu.editing = true,
+                                ConvertField::Run => convert_state.start_convert(),
+                                _ => {},
+                            }
                         },
 
                         //                      <-- VIDEO PROCESSING SCENE KEY EVENTS -->
+                        (Scene::VideoProcessing, KeyCode::Left) | (Scene::VideoProcessing, KeyCode::Char('a')) => video_menu.previous(),
+                        (Scene::VideoProcessing, KeyCode::Right) | (Scene::VideoProcessing, KeyCode::Char('d')) => video_menu.next(),
+                        (Scene::VideoProcessing, KeyCode::Up) | (Scene::VideoProcessing, KeyCode::Char('w')) => video_menu.above(),
+                        (Scene::VideoProcessing, KeyCode::Down) | (Scene::VideoProcessing, KeyCode::Char('s')) => video_menu.below(),
                         (Scene::VideoProcessing, KeyCode::Enter) => {
                             video_state = video_menu.selected_state();
+                            previous_scene = Scene::VideoProcessing;
+
+                            writeln!(_file, "State: '{:?}' at {} showing {:?} because '{:?}' was pressed.",
+                                current_scene, Utc::now().format("%H-%M-%S"), video_menu, k.code)?;
                         },
+
                         (Scene::VideoProcessing, KeyCode::Esc) => {
-                            video_state = VideoProcessingState::Default;
-                            current_scene = Scene::Home;
+                            if video_state != VideoProcessingState::Default {
+                                video_state = VideoProcessingState::Default;
+                                current_scene = previous_scene;
+                            } else {
+                                current_scene = Scene::Home;
+                            }
+                            
+                            writeln!(_file, "State: '{:?}' at {} showing {:?} because '{:?}' was pressed.",
+                                current_scene, Utc::now().format("%H-%M-%S"), video_menu, k.code)?;
                         },
 
-                        //                      <-- IMAGE / AUDIO PROCESSING SCENE KEY EVENTS (W.I.P.) -->
-                        (Scene::ImageProcessing, KeyCode::Esc) | (Scene::AudioProcessing, KeyCode::Esc) => {
+                        //                      <-- IMAGE PROCESSING SCENE KEY EVENTS -->
+                        (Scene::ImageProcessing, KeyCode::Esc) => {
+                            // PLACE THE IMAGE_PROCESSING STATE HERE
                             current_scene = Scene::Home;
+                            
+                            writeln!(_file, "State: '{:?}' at {} showing {:?} because '{:?}' was pressed.",
+                                current_scene, Utc::now().format("%H-%M-%S"), video_menu, k.code)?;
                         },
-
+                        
                         _ => {}
-                    }
-                }
-
-                if k.kind == event::KeyEventKind::Repeat {
-                    if k.kind == event::KeyEventKind::Press {
-                        match (current_scene, k.code) {
-                            //                      <-- VIDEO PROCESSING SCENE KEY EVENTS -->
-                            (Scene::VideoProcessing, KeyCode::Left) | (Scene::VideoProcessing, KeyCode::Char('a')) => video_menu.previous(),
-                            (Scene::VideoProcessing, KeyCode::Right) | (Scene::VideoProcessing, KeyCode::Char('d')) => video_menu.next(),
-                            _ => {}
-                        }
                     }
                 }
             }
