@@ -26,7 +26,7 @@ mod background;
 mod explanations;
 
 use home::{HomeState, HomeMenuState};
-use video::{VideoProcessingState, DirectionsMenuState, ConvertState, ConvertField};
+use video::{VideoProcessingState, DirectionsMenuState, ConvertState, ConvertField, complete_textarea};
 
 use crate::home::HomeState::Video;
 
@@ -288,6 +288,13 @@ fn main() -> Result<(), io::Error> {
                         {
                             match k.code {
                                 KeyCode::Enter | KeyCode::Esc => convert_state.menu.editing = false,
+                                KeyCode::Tab => {
+                                    match convert_state.menu.focus_field() {
+                                        ConvertField::InputPath => complete_textarea(&mut convert_state.input_file_path),
+                                        ConvertField::OutputPath => complete_textarea(&mut convert_state.output_file_path),
+                                        _ => {},
+                                    }
+                                },
                                 _ => {
                                     match convert_state.menu.focus_field() {
                                         ConvertField::InputPath => { convert_state.input_file_path.input(Event::Key(k)); },
@@ -363,13 +370,23 @@ fn main() -> Result<(), io::Error> {
                         (Scene::VideoProcessing, KeyCode::Right) | (Scene::VideoProcessing, KeyCode::Char('d'))
                             if video_state == VideoProcessingState::Convert => convert_state.menu.next(),
                         (Scene::VideoProcessing, KeyCode::Up) | (Scene::VideoProcessing, KeyCode::Char('w'))
-                            if video_state == VideoProcessingState::Convert => convert_state.cycle_value(true),
+                            if video_state == VideoProcessingState::Convert => {
+                                match convert_state.menu.focus_field() {
+                                    ConvertField::InputPath | ConvertField::OutputPath => convert_state.menu.previous(),
+                                    _ => convert_state.cycle_value(true),
+                                }
+                            },
                         (Scene::VideoProcessing, KeyCode::Down) | (Scene::VideoProcessing, KeyCode::Char('s'))
-                            if video_state == VideoProcessingState::Convert => convert_state.cycle_value(false),
+                            if video_state == VideoProcessingState::Convert => {
+                                match convert_state.menu.focus_field() {
+                                    ConvertField::InputPath | ConvertField::OutputPath => convert_state.menu.next(),
+                                    _ => convert_state.cycle_value(false),
+                                }
+                            },
                         (Scene::VideoProcessing, KeyCode::Enter) if video_state == VideoProcessingState::Convert => {
                             match convert_state.menu.focus_field() {
                                 ConvertField::InputPath | ConvertField::OutputPath => convert_state.menu.editing = true,
-                                ConvertField::Run => convert_state.start_convert(),
+                                ConvertField::Run => convert_state.start_convert(&filename),
                                 _ => {},
                             }
                         },

@@ -1,12 +1,45 @@
 use std::{rc::Rc};
-use std::io::{BufRead, BufReader};
+use std::fs::OpenOptions;
+use std::io::{BufRead, BufReader, Write};
+use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::mpsc::{self, Receiver, TryRecvError};
 use std::thread;
+use chrono::Utc;
+
+/// Resolve ffmpeg binary: bundled copy next to the exe wins over PATH,
+/// so the app works standalone once shipped with an `ffmpeg` folder alongside it.
+fn ffmpeg_binary() -> PathBuf {
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            let candidates = [
+                dir.join("ffmpeg.exe"),
+                dir.join("ffmpeg").join("bin").join("ffmpeg.exe"),
+                dir.join("ffmpeg").join("ffmpeg.exe"),
+            ];
+            for candidate in candidates {
+                if candidate.is_file() {
+                    return candidate;
+                }
+            }
+        }
+    }
+    #[cfg(debug_assertions)]
+    {
+        let dev_bin = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("ffmpeg")
+            .join("bin")
+            .join("ffmpeg.exe");
+        if dev_bin.is_file() {
+            return dev_bin;
+        }
+    }
+    PathBuf::from("ffmpeg")
+}
 
 use ansi_to_tui::IntoText as _;
 
-use ratatui_textarea::TextArea;
+use ratatui_textarea::{CursorMove, TextArea};
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 
@@ -130,69 +163,82 @@ impl ConvertFormat {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ConvertCodec { H264, H265 }
+pub enum ConvertCodec { H264, H265, Vp9, Gif }
 
 impl ConvertCodec {
-    const ALL: [ConvertCodec; 2] = [ConvertCodec::H264, ConvertCodec::H265];
+    /// Codecs a container can actually mux. WebM only takes VP8/VP9/AV1;
+    /// the .gif muxer only takes the `gif` codec. h264/h265 fail there with
+    /// "Could not write header (incorrect codec parameters ?): Invalid argument".
+    fn allowed_for(format: ConvertFormat) -> &'static [ConvertCodec] {
+        match format {
+            ConvertFormat::WebM => &[ConvertCodec::Vp9],
+            ConvertFormat::Gif => &[ConvertCodec::Gif],
+            _ => &[ConvertCodec::H264, ConvertCodec::H265],
+        }
+    }
 
     fn label(&self) -> &'static str {
         match self {
             Self::H264 => "🏃 H.264", Self::H265 => "🐌 H.265",
+            Self::Vp9 => "🌐 VP9", Self::Gif => "🖼 GIF",
         }
     }
 
     fn ffmpeg_flag(&self) -> &'static str {
         match self {
             Self::H264 => "libx264", Self::H265 => "libx265",
+            Self::Vp9 => "libvpx-vp9", Self::Gif => "gif",
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ConvertResolution { Original, R1080, R720, R480, R360 }
+pub enum ConvertResolution { Original, R4K, R1440, R1080, R720, R480, R360 }
 
 impl ConvertResolution {
-    const ALL: [ConvertResolution; 5] = [
-        ConvertResolution::Original, ConvertResolution::R1080, ConvertResolution::R720,
-        ConvertResolution::R480, ConvertResolution::R360,
+    const ALL: [ConvertResolution; 7] = [
+        ConvertResolution::Original, ConvertResolution::R4K, ConvertResolution::R1440, 
+        ConvertResolution::R1080, ConvertResolution::R720, ConvertResolution::R480, ConvertResolution::R360,
     ];
 
     fn label(&self) -> &'static str {
         match self {
-            Self::Original => "🔳 original", Self::R1080 => "1080p", Self::R720 => "720p",
-            Self::R480 => "480p", Self::R360 => "360p",
+            Self::Original => "🔳 original", Self::R4K => "4k", Self::R1440 => "1440p",
+            Self::R1080 => "1080p", Self::R720 => "720p", Self::R480 => "480p", Self::R360 => "360p",
         }
     }
 
     fn scale(&self) -> Option<(u32, u32)> {
         match self {
-            Self::Original => None,
-            Self::R1080 => Some((1920, 1080)),
-            Self::R720 => Some((1280, 720)),
-            Self::R480 => Some((854, 480)),
-            Self::R360 => Some((640, 360)),
+            Self::Original  => None,
+            Self::R4K       => Some((3840 , 2160)),
+            Self::R1440     => Some((2560, 1440)),
+            Self::R1080     => Some((1920, 1080)),
+            Self::R720      => Some((1280, 720)),
+            Self::R480      => Some((854, 480)),
+            Self::R360      => Some((640, 360)),
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ConvertFps { Original, Fps60, Fps30, Fps24 }
+pub enum ConvertFps { Original, Fps120, Fps60, Fps30, Fps24 }
 
 impl ConvertFps {
-    const ALL: [ConvertFps; 4] = [
-        ConvertFps::Original, ConvertFps::Fps60, ConvertFps::Fps30, ConvertFps::Fps24,
+    const ALL: [ConvertFps; 5] = [
+        ConvertFps::Original, ConvertFps::Fps120, ConvertFps::Fps60, ConvertFps::Fps30, ConvertFps::Fps24,
     ];
 
     fn label(&self) -> &'static str {
         match self {
-            Self::Original => "🔳 original", Self::Fps60 => "60fps", Self::Fps30 => "30fps",
+            Self::Original => "🔳 original", Self::Fps120 => "120fps", Self::Fps60 => "60fps", Self::Fps30 => "30fps",
             Self::Fps24 => "24fps",
         }
     }
 
     fn value(&self) -> Option<u32> {
         match self {
-            Self::Original => None, Self::Fps60 => Some(60), Self::Fps30 => Some(30), Self::Fps24 => Some(24),
+            Self::Original => None, Self::Fps120 => Some(120), Self::Fps60 => Some(60), Self::Fps30 => Some(30), Self::Fps24 => Some(24),
         }
     }
 }
@@ -205,7 +251,7 @@ impl ConvertCrf {
 
     fn label(&self) -> &'static str {
         match self {
-            Self::Auto => "🔳 auto", Self::High => "✨ high", Self::Medium => "quality", Self::Low => "📦 small",
+            Self::Auto => "🔳 auto", Self::High => "✨ high", Self::Medium => "💫 medium", Self::Low => "📦 small",
         }
     }
 
@@ -217,13 +263,13 @@ impl ConvertCrf {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ConvertField { InputPath, Format, Codec, Resolution, Fps, Crf, OutputPath, Run }
+pub enum ConvertField { InputPath, OutputPath, Format, Codec, Resolution, Fps, Crf, Run }
 
 impl ConvertField {
     const ALL: [ConvertField; 8] = [
-        ConvertField::InputPath, ConvertField::Format, ConvertField::Codec,
-        ConvertField::Resolution, ConvertField::Fps, ConvertField::Crf,
-        ConvertField::OutputPath, ConvertField::Run,
+        ConvertField::InputPath, ConvertField::OutputPath, ConvertField::Format,
+        ConvertField::Codec, ConvertField::Resolution, ConvertField::Fps,
+        ConvertField::Crf, ConvertField::Run,
     ];
 
     fn label(&self) -> &'static str {
@@ -299,7 +345,7 @@ impl ConvertJob {
 
     fn status_text(&self) -> String {
         match &self.finished {
-            Some(Ok(())) => "✅ done!".to_string(),
+            Some(Ok(())) => "✅ We're done here!".to_string(),
             Some(Err(e)) => format!("❌ {e}"),
             None => format!("⏳ converting... {:.0}%", self.ratio() * 100.0),
         }
@@ -315,11 +361,80 @@ fn parse_timestamp(s: &str) -> Option<f64> {
     Some(hours * 3600.0 + minutes * 60.0 + seconds)
 }
 
+/// Strips a leading/trailing `"` (or `'`) pair, e.g. from Windows "Copy as path".
+/// Without this the quote chars end up as literal bytes in the path arg passed to ffmpeg.
+fn strip_quotes(s: &str) -> String {
+    let trimmed = s.trim();
+    let stripped = trimmed
+        .strip_prefix('"').and_then(|s| s.strip_suffix('"'))
+        .or_else(|| trimmed.strip_prefix('\'').and_then(|s| s.strip_suffix('\'')));
+    stripped.unwrap_or(trimmed).to_string()
+}
+
 fn parse_tagged_timestamp(line: &str, tag: &str) -> Option<f64> {
     let start = line.find(tag)? + tag.len();
     let rest = &line[start..];
     let end = rest.find(|c: char| c != ':' && c != '.' && !c.is_ascii_digit()).unwrap_or(rest.len());
     parse_timestamp(&rest[..end])
+}
+
+//                      <-- PATH TAB-AUTOCOMPLETE -->
+fn split_dir_prefix(current: &str) -> (String, String) {
+    match current.rfind(['/', '\\']) {
+        Some(i) => (current[..=i].to_string(), current[i + 1..].to_string()),
+        None => (String::new(), current.to_string()),
+    }
+}
+
+fn common_prefix(items: &[String]) -> String {
+    let mut prefix = match items.first() {
+        Some(first) => first.clone(),
+        None => return String::new(),
+    };
+    for item in &items[1..] {
+        while !item.to_lowercase().starts_with(&prefix.to_lowercase()) {
+            prefix.pop();
+            if prefix.is_empty() { return prefix; }
+        }
+    }
+    prefix
+}
+
+/// Shell-style tab completion for a path typed into the input/output fields.
+/// Completes to the single match, or the longest common prefix across matches.
+pub fn autocomplete_path(current: &str) -> String {
+    let (dir_str, prefix) = split_dir_prefix(current);
+    let scan_dir = if dir_str.is_empty() { ".".to_string() } else { dir_str.clone() };
+
+    let Ok(entries) = std::fs::read_dir(&scan_dir) else { return current.to_string() };
+
+    let mut matches: Vec<String> = entries
+        .filter_map(|e| e.ok())
+        .filter_map(|e| {
+            let name = e.file_name().to_string_lossy().to_string();
+            name.to_lowercase().starts_with(&prefix.to_lowercase()).then_some(name)
+        })
+        .collect();
+
+    if matches.is_empty() { return current.to_string(); }
+    matches.sort();
+
+    let completion = if matches.len() == 1 { matches[0].clone() } else { common_prefix(&matches) };
+    if completion.is_empty() { return current.to_string(); }
+
+    let mut result = format!("{dir_str}{completion}");
+    if matches.len() == 1 && std::path::Path::new(&scan_dir).join(&completion).is_dir() {
+        result.push('/');
+    }
+    result
+}
+
+/// Replaces a field's typed path with its tab-completed form, cursor moved to the end.
+pub fn complete_textarea(text_area: &mut TextArea<'static>) {
+    let current = text_area.lines().join("");
+    let completed = autocomplete_path(&current);
+    *text_area = TextArea::new(vec![completed]);
+    text_area.move_cursor(CursorMove::End);
 }
 
 //                      <-- CONVERT SCREEN STATE -->
@@ -338,9 +453,14 @@ pub struct ConvertState {
 
 impl ConvertState {
     pub fn new() -> Self {
+        let mut input_file_path = TextArea::default();
+        input_file_path.set_placeholder_text("C:/Users/you/video.mov");
+        let mut output_file_path = TextArea::default();
+        output_file_path.set_placeholder_text("C:/Users/you/output.mp4");
+
         Self {
-            input_file_path: TextArea::default(),
-            output_file_path: TextArea::default(),
+            input_file_path,
+            output_file_path,
             menu: ConvertMenuState::new(),
             format: ConvertFormat::Mp4,
             codec: ConvertCodec::H264,
@@ -353,8 +473,19 @@ impl ConvertState {
 
     pub fn cycle_value(&mut self, forward: bool) {
         match self.menu.focus_field() {
-            ConvertField::Format => self.format = Self::cycle(&ConvertFormat::ALL, self.format, forward),
-            ConvertField::Codec => self.codec = Self::cycle(&ConvertCodec::ALL, self.codec, forward),
+            ConvertField::Format => {
+                self.format = Self::cycle(&ConvertFormat::ALL, self.format, forward);
+                // Drop to a codec the new container can actually mux (e.g. leaving
+                // .webm/.gif) so the picker never lands on a combo ffmpeg will reject.
+                let allowed = ConvertCodec::allowed_for(self.format);
+                if !allowed.contains(&self.codec) {
+                    self.codec = allowed[0];
+                }
+            },
+            ConvertField::Codec => {
+                let allowed = ConvertCodec::allowed_for(self.format);
+                self.codec = Self::cycle(allowed, self.codec, forward);
+            },
             ConvertField::Resolution => self.resolution = Self::cycle(&ConvertResolution::ALL, self.resolution, forward),
             ConvertField::Fps => self.fps = Self::cycle(&ConvertFps::ALL, self.fps, forward),
             ConvertField::Crf => self.crf = Self::cycle(&ConvertCrf::ALL, self.crf, forward),
@@ -374,9 +505,9 @@ impl ConvertState {
         all[next_idx]
     }
 
-    pub fn start_convert(&mut self) {
-        let input = self.input_file_path.lines().join("");
-        let mut output = self.output_file_path.lines().join("");
+    pub fn start_convert(&mut self, log_path: &str) {
+        let input = strip_quotes(&self.input_file_path.lines().join(""));
+        let mut output = strip_quotes(&self.output_file_path.lines().join(""));
         if input.trim().is_empty() || output.trim().is_empty() {
             return;
         }
@@ -400,23 +531,35 @@ impl ConvertState {
         }
         args.push("-c:v".into());
         args.push(self.codec.ffmpeg_flag().into());
-        if let Some(crf) = self.crf.value() {
-            args.push("-crf".into());
-            args.push(crf.to_string());
+        // The `gif` codec doesn't take -crf; ffmpeg rejects the flag outright.
+        if self.codec != ConvertCodec::Gif {
+            if let Some(crf) = self.crf.value() {
+                args.push("-crf".into());
+                args.push(crf.to_string());
+            }
         }
         args.push(output);
+
+        let command_line = format!("{} {}", ffmpeg_binary().display(), args.join(" "));
+        let log_path = log_path.to_string();
 
         let (tx, rx) = mpsc::channel();
 
         thread::spawn(move || {
-            let spawned = Command::new("ffmpeg")
+            if let Ok(mut f) = OpenOptions::new().append(true).create(true).open(&log_path) {
+                let _ = writeln!(f, "Started ffmpeg convert job at {}: {command_line}", Utc::now().format("%H-%M-%S"));
+            }
+
+            let spawned = Command::new(ffmpeg_binary())
                 .args(&args)
                 .stdin(Stdio::null())
                 .stdout(Stdio::null())
                 .stderr(Stdio::piped())
                 .spawn();
 
-            match spawned {
+            let mut stderr_lines: Vec<String> = Vec::new();
+
+            let result = match spawned {
                 Ok(mut child) => {
                     if let Some(stderr) = child.stderr.take() {
                         for line in BufReader::new(stderr).lines().flatten() {
@@ -426,20 +569,42 @@ impl ConvertState {
                             if let Some(t) = parse_tagged_timestamp(&line, "time=") {
                                 let _ = tx.send(ConvertMsg::Time(t));
                             }
+                            stderr_lines.push(line);
                         }
                     }
 
-                    let result = match child.wait() {
+                    match child.wait() {
                         Ok(status) if status.success() => Ok(()),
-                        Ok(status) => Err(format!("ffmpeg exited with {status}")),
+                        Ok(status) => {
+                            let last_error = stderr_lines.iter().rev().find(|l| !l.trim().is_empty());
+                            Err(match last_error {
+                                Some(l) => format!("ffmpeg exited with {status}: {l}"),
+                                None => format!("ffmpeg exited with {status}"),
+                            })
+                        },
                         Err(e) => Err(e.to_string()),
-                    };
-                    let _ = tx.send(ConvertMsg::Done(result));
+                    }
                 },
-                Err(e) => {
-                    let _ = tx.send(ConvertMsg::Done(Err(format!("couldn't launch ffmpeg: {e}"))));
-                },
+                Err(e) => Err(format!("couldn't launch ffmpeg: {e}")),
+            };
+
+            if let Ok(mut f) = OpenOptions::new().append(true).create(true).open(&log_path) {
+                let finished_at = Utc::now().format("%H-%M-%S");
+                match &result {
+                    Ok(()) => { let _ = writeln!(f, "ffmpeg convert job finished OK at {finished_at}."); },
+                    Err(e) => {
+                        let _ = writeln!(f, "ffmpeg convert job FAILED at {finished_at}: {e}");
+                        if !stderr_lines.is_empty() {
+                            let _ = writeln!(f, "  full stderr:");
+                            for line in &stderr_lines {
+                                let _ = writeln!(f, "    {line}");
+                            }
+                        }
+                    },
+                }
             }
+
+            let _ = tx.send(ConvertMsg::Done(result));
         });
 
         self.job = Some(ConvertJob { rx, duration: 0.0, elapsed: 0.0, finished: None });
@@ -521,7 +686,7 @@ pub fn render(
 
     //                      <-- DIRECTIONS -->
     // Explanations run down the LEFT side of inner[6], sharing rows with the
-    // art on the right — art's own rect/rendering stays untouched.
+    // art on the right, art's own rect/rendering stays untouched.
     match state {
         VideoProcessingState::Default => {},
         VideoProcessingState::Convert => {
@@ -541,12 +706,12 @@ pub fn render(
             let cols: Rc<[Rect]> = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([
-                Constraint::Percentage(80), // cols[0]: fields + progress
-                Constraint::Percentage(20), // cols[1]: art
+                Constraint::Percentage(60), // cols[0]: fields + progress
+                Constraint::Percentage(40), // cols[1]: art
             ])
             .split(inner[6]);
 
-            let intro_text = "WASD to move between fields below \u{2022} A/D changes focus, W/S cycles a value \u{2022} ENTER edits a path or runs convert.";
+            let intro_text = "'\x1b[38;5;218m\x1b[1mWASD\x1b[22m\x1b[39m'/arrow-key equivalents to move between fields below \u{2022} '\x1b[38;5;218m\x1b[1mA\x1b[22m\x1b[39m'/'\x1b[38;5;218m\x1b[1mleft arrow-key\x1b[22m\x1b[39m' changes focus, W/S cycles a value \u{2022} '\x1b[38;5;205m\x1b[1mENTER\x1b[22m\x1b[39m' EDITS PATH or runs CONVERT.";
             frame.render_widget(
                 Paragraph::new(styles::left_directions(rows[0].width, rows[0].height).render(intro_text).as_bytes().into_text().unwrap()),
                 rows[0],
@@ -554,7 +719,7 @@ pub fn render(
 
             let status_text: String = match convert_state.job.as_ref() {
                 Some(job) => job.status_text(),
-                None => "Idle \u{2014} fill in the fields, then focus ▶ convert and press ENTER.".to_string(),
+                None => "Fill in the fields, then focus ▶ convert and press '\x1b[38;5;205m\x1b[1mENTER\x1b[22m\x1b[39m'.".to_string(),
             };
             frame.render_widget(
                 Paragraph::new(styles::left_directions(rows[1].width, rows[1].height).render(&status_text).as_bytes().into_text().unwrap()),
@@ -564,24 +729,24 @@ pub fn render(
             let field_area: Rc<[Rect]> = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Length(3),  // field_area[0]: focusable field boxes
-                Constraint::Length(3),  // field_area[1]: progress gauge
+                Constraint::Length(3),  // field_area[0]: input path (own row)
+                Constraint::Length(3),  // field_area[1]: output path (own row)
+                Constraint::Length(3),  // field_area[2]: format/codec/res/fps/quality/run
+                Constraint::Length(3),  // field_area[3]: progress gauge
             ])
             .split(cols[0]);
 
-            let field_cols: Rc<[Rect]> = Layout::default()
+            let option_cols: Rc<[Rect]> = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([
-                Constraint::Fill(2),    // input path
-                Constraint::Length(12), // format
-                Constraint::Length(12), // codec
-                Constraint::Length(12), // resolution
-                Constraint::Length(10), // fps
-                Constraint::Length(12), // quality/crf
-                Constraint::Fill(2),    // output path
-                Constraint::Length(12), // run
+                Constraint::Fill(1), // format
+                Constraint::Fill(1), // codec
+                Constraint::Fill(1), // resolution
+                Constraint::Fill(1), // fps
+                Constraint::Fill(1), // quality/crf
+                Constraint::Fill(1), // run
             ])
-            .split(field_area[0]);
+            .split(field_area[2]);
 
             let focused = convert_state.menu.focus_field();
 
@@ -602,9 +767,14 @@ pub fn render(
             };
 
             let input_block = field_block(ConvertField::InputPath);
-            let input_inner = input_block.inner(field_cols[0]);
-            frame.render_widget(input_block, field_cols[0]);
+            let input_inner = input_block.inner(field_area[0]);
+            frame.render_widget(input_block, field_area[0]);
             frame.render_widget(&convert_state.input_file_path, input_inner);
+
+            let output_block = field_block(ConvertField::OutputPath);
+            let output_inner = output_block.inner(field_area[1]);
+            frame.render_widget(output_block, field_area[1]);
+            frame.render_widget(&convert_state.output_file_path, output_inner);
 
             let value_field = |field: ConvertField, value: &str, area: Rect, frame: &mut Frame<'_>| {
                 let block = field_block(field);
@@ -616,20 +786,15 @@ pub fn render(
                 );
             };
 
-            value_field(ConvertField::Format, convert_state.format.label(), field_cols[1], frame);
-            value_field(ConvertField::Codec, convert_state.codec.label(), field_cols[2], frame);
-            value_field(ConvertField::Resolution, convert_state.resolution.label(), field_cols[3], frame);
-            value_field(ConvertField::Fps, convert_state.fps.label(), field_cols[4], frame);
-            value_field(ConvertField::Crf, convert_state.crf.label(), field_cols[5], frame);
-
-            let output_block = field_block(ConvertField::OutputPath);
-            let output_inner = output_block.inner(field_cols[6]);
-            frame.render_widget(output_block, field_cols[6]);
-            frame.render_widget(&convert_state.output_file_path, output_inner);
+            value_field(ConvertField::Format, convert_state.format.label(), option_cols[0], frame);
+            value_field(ConvertField::Codec, convert_state.codec.label(), option_cols[1], frame);
+            value_field(ConvertField::Resolution, convert_state.resolution.label(), option_cols[2], frame);
+            value_field(ConvertField::Fps, convert_state.fps.label(), option_cols[3], frame);
+            value_field(ConvertField::Crf, convert_state.crf.label(), option_cols[4], frame);
 
             let run_block = field_block(ConvertField::Run);
-            let run_inner = run_block.inner(field_cols[7]);
-            frame.render_widget(run_block, field_cols[7]);
+            let run_inner = run_block.inner(option_cols[5]);
+            frame.render_widget(run_block, option_cols[5]);
             frame.render_widget(
                 Paragraph::new(ConvertField::Run.label()).alignment(Alignment::Center).style(Style::default().fg(Color::White)),
                 run_inner,
@@ -640,7 +805,7 @@ pub fn render(
                 .block(Block::default().borders(Borders::ALL).title("progress"))
                 .gauge_style(Style::default().fg(Color::Rgb(255, 133, 200)))
                 .ratio(ratio);
-            frame.render_widget(gauge, field_area[1]);
+            frame.render_widget(gauge, field_area[3]);
         },
         VideoProcessingState::ExplainConvert => {
             let rows: Rc<[Rect]> = Layout::default()
@@ -655,8 +820,8 @@ pub fn render(
             let cols: Rc<[Rect]> = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([
-                Constraint::Percentage(80), // cols[0]: format list
-                Constraint::Percentage(20), // cols[1]: art
+                Constraint::Percentage(60), // cols[0]: format list
+                Constraint::Percentage(40), // cols[1]: art
             ])
             .split(inner[6]);
 

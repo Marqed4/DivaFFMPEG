@@ -62,9 +62,3 @@ pub fn centered_menu(width: u16, height: u16) -> Style {
     .width(width)
     .height(height)
 }
-
-pub fn dir_highlight() -> Style {
-    return Style::new()
-    .bold()
-    .foreground("#E9D502")
-}

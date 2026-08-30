@@ -103,7 +103,7 @@ pub fn render(frame: &mut Frame<'_>, _state: HomeState, menu: &HomeMenuState) {
         + divider_width * (titles.len().saturating_sub(1)) as u16;
 
     let selection_guide: Paragraph<'_> = Paragraph::new(styles::center_directions(inner[1].width, inner[1].height).render(
-        "Press '\x1b[38;5;218m\x1b[1mA\x1b[22m\x1b[39m' or '\x1b[38;5;218m\x1b[1mleft arrow-key\x1b[22m\x1b[39m' OR '\x1b[38;5;218m\x1b[1mD\x1b[22m\x1b[39m' or '\x1b[38;5;218m\x1b[1mright arrow-key\x1b[22m\x1b[39m' to MOVE THE SELECTION HIGHLIGHT. \nPress '\x1b[38;5;205m\x1b[1mQ\x1b[22m\x1b[39m' to EXIT! 💋").as_bytes().into_text().unwrap());
+        "Press '\x1b[38;5;218m\x1b[1mA\x1b[22m\x1b[39m' or '\x1b[38;5;218m\x1b[1mleft arrow-key\x1b[22m\x1b[39m' & '\x1b[38;5;218m\x1b[1mD\x1b[22m\x1b[39m' or '\x1b[38;5;218m\x1b[1mright arrow-key\x1b[22m\x1b[39m' to MOVE THE SELECTION HIGHLIGHT. \nPress '\x1b[38;5;205m\x1b[1mENTER\x1b[22m\x1b[39m' to CONFIRM the SELECTION or '\x1b[38;5;205m\x1b[1mQ\x1b[22m\x1b[39m' to EXIT! 💋").as_bytes().into_text().unwrap());
 
     let centered_area_below = Layout::default()
         .direction(Direction::Horizontal)

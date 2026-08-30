@@ -24,7 +24,7 @@ pub fn explain_intro_line_2(width: u16, height: u16) -> Paragraph<'static> {
 pub fn explain_outro_line(width: u16, height: u16) -> Paragraph<'static> {
     Paragraph::new(
         styles::left_directions(width, height)
-            .render("Diva FFMPEG defaults to a stream copy for speed — flip to re-encode mode if you need a frame-perfect cut instead.")
+            .render("Diva FFMPEG defaults to a stream copy for speed, flip to re-encode mode if you need a frame-perfect cut instead.")
             .as_bytes().into_text().unwrap()
     )
 }
@@ -34,10 +34,10 @@ pub fn explain_format_list(width: u16, height: u16) -> Paragraph<'static> {
         styles::left_directions_transparent(width, height)
             .render(
                 format!(
-                    "{PINK}\"-c copy\"{RESET}      : stream copy — lossless and near-instant, but only cuts on keyframes\n\
-                     \"-ss\"/\"-to\"    : start and end timestamps — before -i for fast seek, after -i for frame-accurate\n\
+                    "{PINK}\"-c copy\"{RESET}      : stream copy, lossless and near-instant, but only cuts on keyframes\n\
+                     \"-ss\"/\"-to\"    : start and end timestamps, before -i for fast seek, after -i for frame-accurate\n\
                      re-encode      : drop \"-c copy\" for an exact, frame-accurate cut at any point\n\
-                     \"-t\"           : clip duration — an alternative to an end timestamp"
+                     \"-t\"           : clip duration, an alternative to an end timestamp"
                 ).as_str()
             )
             .as_bytes()

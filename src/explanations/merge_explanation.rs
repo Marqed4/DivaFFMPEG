@@ -34,7 +34,7 @@ pub fn explain_format_list(width: u16, height: u16) -> Paragraph<'static> {
         styles::left_directions_transparent(width, height)
             .render(
                 format!(
-                    "{PINK}concat demuxer{RESET}   : fast, lossless — ffmpeg -f concat -safe 0 -i list.txt -c copy out.mp4\n\
+                    "{PINK}concat demuxer{RESET}   : fast, lossless, ffmpeg -f concat -safe 0 -i list.txt -c copy out.mp4\n\
                      concat filter    : re-encode-based merge for mismatched codecs, resolutions, or frame rates\n\
                      codec mismatch   : Diva FFMPEG falls back to a re-encode automatically\n\
                      {PINK}\"-c copy\"{RESET}        : kept whenever possible so the merge stays lossless and fast"

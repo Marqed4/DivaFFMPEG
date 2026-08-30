@@ -24,7 +24,7 @@ pub fn explain_intro_line_2(width: u16, height: u16) -> Paragraph<'static> {
 pub fn explain_outro_line(width: u16, height: u16) -> Paragraph<'static> {
     Paragraph::new(
         styles::left_directions(width, height)
-            .render("Stick with a CRF-based encode unless you have a hard file size limit to hit — that's what Diva FFMPEG defaults to.")
+            .render("Stick with a CRF-based encode unless you have a hard file size limit to hit, that's what Diva FFMPEG defaults to.")
             .as_bytes().into_text().unwrap()
     )
 }
@@ -34,10 +34,10 @@ pub fn explain_format_list(width: u16, height: u16) -> Paragraph<'static> {
         styles::left_directions_transparent(width, height)
             .render(
                 format!(
-                    "{PINK}\"-crf\"{RESET}     : Constant Rate Factor — quality-based, lower is higher quality (18 to 28 is sane)\n\
-                     \"-b:v\"     : target bitrate — size-based, hits a strict file size cap\n\
-                     \"-preset\"  : encoding speed — \"ultrafast\" through \"veryslow\"\n\
-                     \"-c:v\"     : codec choice — libx264 for compatibility, libx265/libaom-av1 for smaller files"
+                    "{PINK}\"-crf\"{RESET}     : Constant Rate Factor, quality-based, lower is higher quality (18 to 28 is sane)\n\
+                     \"-b:v\"     : target bitrate, size-based, hits a strict file size cap\n\
+                     \"-preset\"  : encoding speed, \"ultrafast\" through \"veryslow\"\n\
+                     \"-c:v\"     : codec choice, libx264 for compatibility, libx265/libaom-av1 for smaller files"
                 ).as_str()
             )
             .as_bytes()
