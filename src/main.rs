@@ -24,9 +24,14 @@ mod styles;
 mod component;
 mod background;
 mod explanations;
+mod implementations;
 
 use home::{HomeState, HomeMenuState};
-use video::{VideoProcessingState, DirectionsMenuState, ConvertState, ConvertField, complete_textarea};
+use video::{VideoProcessingState, DirectionsMenuState, complete_textarea};
+use implementations::{
+    ConvertState, ConvertField, CompressState, CompressField,
+    TrimState, TrimField, MergeState, MergeField,
+};
 
 use crate::home::HomeState::Video;
 
@@ -40,7 +45,7 @@ enum Scene {
     Start,
     Home,
     ImageProcessing, // W.I.P.
-    VideoProcessing,
+    VideoProcessing, 
     AudioProcessing, // W.I.P.
     Exit,
 }
@@ -84,6 +89,9 @@ fn main() -> Result<(), io::Error> {
     let mut video_state: VideoProcessingState = VideoProcessingState::Default;
     let mut video_menu: DirectionsMenuState = DirectionsMenuState::new();
     let mut convert_state: ConvertState = ConvertState::new();
+    let mut compress_state: CompressState = CompressState::new();
+    let mut trim_state: TrimState = TrimState::new();
+    let mut merge_state: MergeState = MergeState::new();
 
     // Drain any stray input events left over from launching the process
     // (e.g. the Enter keystroke used to run the binary) so they don't
@@ -210,7 +218,7 @@ fn main() -> Result<(), io::Error> {
                 // The goal of this block is to render the portion of this TUI that displays information
                 // and control used for video processing.
                 Scene::VideoProcessing => {
-                    video::render(frame, video_state, &video_menu, &mut convert_state);
+                    video::render(frame, video_state, &video_menu, &mut convert_state, &mut compress_state, &mut trim_state, &mut merge_state);
                 },
 
                 //                      <-- IMAGE PROCESSING SCENE (W.I.P.) -->
@@ -280,7 +288,7 @@ fn main() -> Result<(), io::Error> {
             if let Event::Key(k) = event::read()? {
                 if k.kind == event::KeyEventKind::Press {
                     match (current_scene, k.code) {
-                        //                      <-- CONVERT FIELD TEXT-EDIT KEY EVENTS -->
+                        //                      <-- FIELD TEXT-EDIT KEY EVENTS -->
                         // While a text field is being edited, every key (including 'q') must be
                         // forwarded to the textarea instead of being caught by a global shortcut.
                         (Scene::VideoProcessing, _)
@@ -299,6 +307,76 @@ fn main() -> Result<(), io::Error> {
                                     match convert_state.menu.focus_field() {
                                         ConvertField::InputPath => { convert_state.input_file_path.input(Event::Key(k)); },
                                         ConvertField::OutputPath => { convert_state.output_file_path.input(Event::Key(k)); },
+                                        _ => {},
+                                    }
+                                },
+                            }
+                        },
+
+                        (Scene::VideoProcessing, _)
+                            if video_state == VideoProcessingState::Compress && compress_state.menu.editing =>
+                        {
+                            match k.code {
+                                KeyCode::Enter | KeyCode::Esc => compress_state.menu.editing = false,
+                                KeyCode::Tab => {
+                                    match compress_state.menu.focus_field() {
+                                        CompressField::InputPath => complete_textarea(&mut compress_state.input_file_path),
+                                        CompressField::OutputPath => complete_textarea(&mut compress_state.output_file_path),
+                                        _ => {},
+                                    }
+                                },
+                                _ => {
+                                    match compress_state.menu.focus_field() {
+                                        CompressField::InputPath => { compress_state.input_file_path.input(Event::Key(k)); },
+                                        CompressField::OutputPath => { compress_state.output_file_path.input(Event::Key(k)); },
+                                        _ => {},
+                                    }
+                                },
+                            }
+                        },
+
+                        (Scene::VideoProcessing, _)
+                            if video_state == VideoProcessingState::Trim && trim_state.menu.editing =>
+                        {
+                            match k.code {
+                                KeyCode::Enter | KeyCode::Esc => trim_state.menu.editing = false,
+                                KeyCode::Tab => {
+                                    match trim_state.menu.focus_field() {
+                                        TrimField::InputPath => complete_textarea(&mut trim_state.input_file_path),
+                                        TrimField::OutputPath => complete_textarea(&mut trim_state.output_file_path),
+                                        _ => {},
+                                    }
+                                },
+                                _ => {
+                                    match trim_state.menu.focus_field() {
+                                        TrimField::InputPath => { trim_state.input_file_path.input(Event::Key(k)); },
+                                        TrimField::OutputPath => { trim_state.output_file_path.input(Event::Key(k)); },
+                                        TrimField::Start => { trim_state.start_time.input(Event::Key(k)); },
+                                        TrimField::End => { trim_state.end_time.input(Event::Key(k)); },
+                                        _ => {},
+                                    }
+                                },
+                            }
+                        },
+
+                        (Scene::VideoProcessing, _)
+                            if video_state == VideoProcessingState::Merge && merge_state.menu.editing =>
+                        {
+                            match k.code {
+                                KeyCode::Enter | KeyCode::Esc => merge_state.menu.editing = false,
+                                KeyCode::Tab => {
+                                    match merge_state.menu.focus_field() {
+                                        MergeField::InputA => complete_textarea(&mut merge_state.input_a_path),
+                                        MergeField::InputB => complete_textarea(&mut merge_state.input_b_path),
+                                        MergeField::OutputPath => complete_textarea(&mut merge_state.output_file_path),
+                                        _ => {},
+                                    }
+                                },
+                                _ => {
+                                    match merge_state.menu.focus_field() {
+                                        MergeField::InputA => { merge_state.input_a_path.input(Event::Key(k)); },
+                                        MergeField::InputB => { merge_state.input_b_path.input(Event::Key(k)); },
+                                        MergeField::OutputPath => { merge_state.output_file_path.input(Event::Key(k)); },
                                         _ => {},
                                     }
                                 },
@@ -388,6 +466,65 @@ fn main() -> Result<(), io::Error> {
                                 ConvertField::InputPath | ConvertField::OutputPath => convert_state.menu.editing = true,
                                 ConvertField::Run => convert_state.start_convert(&filename),
                                 _ => {},
+                            }
+                        },
+
+                        //                      <-- COMPRESS FIELD NAVIGATION KEY EVENTS -->
+                        (Scene::VideoProcessing, KeyCode::Left) | (Scene::VideoProcessing, KeyCode::Char('a'))
+                            if video_state == VideoProcessingState::Compress => compress_state.menu.previous(),
+                        (Scene::VideoProcessing, KeyCode::Right) | (Scene::VideoProcessing, KeyCode::Char('d'))
+                            if video_state == VideoProcessingState::Compress => compress_state.menu.next(),
+                        (Scene::VideoProcessing, KeyCode::Up) | (Scene::VideoProcessing, KeyCode::Char('w'))
+                            if video_state == VideoProcessingState::Compress => {
+                                match compress_state.menu.focus_field() {
+                                    CompressField::InputPath | CompressField::OutputPath => compress_state.menu.previous(),
+                                    _ => compress_state.cycle_value(true),
+                                }
+                            },
+                        (Scene::VideoProcessing, KeyCode::Down) | (Scene::VideoProcessing, KeyCode::Char('s'))
+                            if video_state == VideoProcessingState::Compress => {
+                                match compress_state.menu.focus_field() {
+                                    CompressField::InputPath | CompressField::OutputPath => compress_state.menu.next(),
+                                    _ => compress_state.cycle_value(false),
+                                }
+                            },
+                        (Scene::VideoProcessing, KeyCode::Enter) if video_state == VideoProcessingState::Compress => {
+                            match compress_state.menu.focus_field() {
+                                CompressField::InputPath | CompressField::OutputPath => compress_state.menu.editing = true,
+                                CompressField::Run => compress_state.start_compress(&filename),
+                                _ => {},
+                            }
+                        },
+
+                        //                      <-- TRIM FIELD NAVIGATION KEY EVENTS -->
+                        (Scene::VideoProcessing, KeyCode::Left) | (Scene::VideoProcessing, KeyCode::Char('a'))
+                            if video_state == VideoProcessingState::Trim => trim_state.menu.previous(),
+                        (Scene::VideoProcessing, KeyCode::Right) | (Scene::VideoProcessing, KeyCode::Char('d'))
+                            if video_state == VideoProcessingState::Trim => trim_state.menu.next(),
+                        (Scene::VideoProcessing, KeyCode::Up) | (Scene::VideoProcessing, KeyCode::Char('w'))
+                            if video_state == VideoProcessingState::Trim => trim_state.menu.previous(),
+                        (Scene::VideoProcessing, KeyCode::Down) | (Scene::VideoProcessing, KeyCode::Char('s'))
+                            if video_state == VideoProcessingState::Trim => trim_state.menu.next(),
+                        (Scene::VideoProcessing, KeyCode::Enter) if video_state == VideoProcessingState::Trim => {
+                            match trim_state.menu.focus_field() {
+                                TrimField::Run => trim_state.start_trim(&filename),
+                                _ => trim_state.menu.editing = true,
+                            }
+                        },
+
+                        //                      <-- MERGE FIELD NAVIGATION KEY EVENTS -->
+                        (Scene::VideoProcessing, KeyCode::Left) | (Scene::VideoProcessing, KeyCode::Char('a'))
+                            if video_state == VideoProcessingState::Merge => merge_state.menu.previous(),
+                        (Scene::VideoProcessing, KeyCode::Right) | (Scene::VideoProcessing, KeyCode::Char('d'))
+                            if video_state == VideoProcessingState::Merge => merge_state.menu.next(),
+                        (Scene::VideoProcessing, KeyCode::Up) | (Scene::VideoProcessing, KeyCode::Char('w'))
+                            if video_state == VideoProcessingState::Merge => merge_state.menu.previous(),
+                        (Scene::VideoProcessing, KeyCode::Down) | (Scene::VideoProcessing, KeyCode::Char('s'))
+                            if video_state == VideoProcessingState::Merge => merge_state.menu.next(),
+                        (Scene::VideoProcessing, KeyCode::Enter) if video_state == VideoProcessingState::Merge => {
+                            match merge_state.menu.focus_field() {
+                                MergeField::Run => merge_state.start_merge(&filename),
+                                _ => merge_state.menu.editing = true,
                             }
                         },
 
