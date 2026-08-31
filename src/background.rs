@@ -7,7 +7,7 @@ use ratatui::{
 };
 
 //                      ¡WARNING PRESERVE WHITESPACE!
- pub const DIVA_LOGO_TOP: &str = r#"
+ pub const ASTOLFO_TOP: &str = r#"
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣤⠶⣶⣤⣔⣶⡶⣦⣤⣠⣶⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⣯⡏⠉⣴⣿⢿⢿⣿⢷⣶⣍⡻⣇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⢠⡶⢤⣴⣿⠟⠀⢁⡞⠛⡟⢣⠐⢳⡀⠈⢻⣯⡺⢦⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
@@ -36,7 +36,7 @@ in specifically on the start page paragraph.
 */
 
 //                      ¡WARNING PRESERVE WHITESPACE!
-pub const DIVA_LOGO_BOTTOM: &str = r#"
+pub const ASTOLFO_BOTTOM: &str = r#"
 ⠀⠀    ⠈⡇⠀⠀⠀⢸⢇⠀⠀⠀⠀⠀⠀⠀⠀⠘⣴⡀⠀⠀⢸⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀    ⣐⡏⠀⠀⠀⣼⡸⠀⠀⠀⠀⠀⠀⠀⠀⠀⢣⠱⡄⠀⡟⣷⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀   ⣯⠀⠀⠀⡟⡇⠀⠀⠀⠀⠀⣀⣀⡀⠤⠬⢆⡿⣄⣃⡈⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
@@ -132,7 +132,40 @@ pub const FELIX_ARGYLE: &str = r#"⠀⠀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀�
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠁⠀⠀⢠⡧⠚⠁⠀⣠⠃⠸⢤⠋⠀⠀⠀⠀⠀⢸⢸⠈⡀⠀⠀⠀⠀⠀⠉⢳⣸⠀⠀⠙⢦⠀⠀⢀⠴⠊
 ⠀⠀⠀⠀⠀⠀⠀⠀⣸⠇⠀⠀⢰⠯⠤⣄⣠⠞⠁⠀⠀⢸⡤⠂⠀⠀⠀⠀⢸⢸⡀⡇⠀⠀⠀⠀⠀⠀⠀⠙⡆⠀⣠⠤⠽⣦⣼⡀⠀
 ⠀⠀⠀⠀⠀⠀⠀⢠⠟⠀⠀⢀⣞⣀⠤⢺⠷⠒⠒⡄⢀⠏⠀⠀⠀⠀⠀⢀⡎⢻⣏⢹⡀⠀⠀⠀⠀⠀⠀⠀⢱⣰⣃⠀⠀⠀⠉⠓⠂
-"#; 
+"#;
+
+pub const EMO_POP: &str = r#"
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠶⣶⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⢠⠐⠦⣆⣄⡀⡠⣄⣴⣲⣢⢵⣞⠀⠀⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠣⡀⠀⣩⣟⡾⣿⣻⣿⣿⡿⢿⡿⣧⣼⡾⡡⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠸⢯⣾⣇⢝⣏⣯⡿⡿⠟⡟⣏⢿⡾⡗⡿⠸⢤⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠘⣿⣯⣿⣯⣟⡵⠋⠀⠀⠈⡿⢻⣩⣃⣿⡕⡄⢤⣹⡶⢤⡀⠀⠀⠀⠀⠀⠀
+⠀⠀⢀⣿⣿⣏⣿⣷⡇⣴⣚⣉⣉⡉⣷⣟⣶⢿⡇⢱⣖⡋⡴⠚⢻⢶⠀⠀⠀⠀⠀
+⠀⠀⠐⣿⣿⡇⡇⢿⡇⠈⠙⠾⠿⠁⣿⣾⣯⣸⡇⠈⠀⠳⠗⣖⠋⣼⢷⡄⠀⠀⠀
+⠀⠀⠁⠙⣿⡹⡇⠈⠀⠀⠀⠀⠀⠀⣯⣽⣿⡫⣇⡄⠀⠀⠀⠀⠹⡟⠋⢀⡵⡄⠀
+⠀⠀⠀⠀⠟⠈⢯⠀⢋⡷⠂⠀⠀⣟⡟⣯⣧⠋⠟⠀⠀⠀⠀⠀⠀⠀⠙⣏⣀⣀⣧
+⠀⠀⠀⠀⠀⠀⠀⠈⠳⠤⠖⣞⠁⠀⢸⡵⠃⠀⢀⣠⣖⣶⠲⠶⠶⠖⠚⠻⠝⠛⡃
+⠀⠀⠀⠀⠀⠀⠀⠀⡠⣤⣤⠧⣴⣦⣴⣠⡾⣯⣯⢯⡿⣏⣇⠀⠀⠀⠀⠀⠀⡀⠃
+⠀⠀⠀⠀⠀⠀⣰⣿⠟⠉⠀⠀⣶⠀⠀⠀⠻⣟⠶⣾⣿⣯⣿⢿⣴⠤⠖⠉⠀⠀⠀
+⠀⠀⠀⠀⠀⡞⠁⠁⠘⢻⢯⣭⣿⡒⠒⠀⠀⠀⠀⠙⠷⢒⠟⠁⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⢠⠃⠀⠀⠀⠰⠗⠋⠉⠓⢓⣀⡀⠀⠀⡀⣠⠎⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⣷⣀⣀⡡⠤⠾⠿⠯⠭⠭⠭⠭⢶⣯⡗⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠉⠛⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡾⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⣸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠻⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⣴⣇⠀⢦⠀⠀⠀⠀⠀⠀⠀⢹⣤⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⡜⣿⡿⠀⠸⣄⠀⠀⠀⠀⠀⠀⠀⢿⠙⠦⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⢰⡏⠛⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⡀⠤⠓⠒⠐⠚⠳⢤⡀⠀⠀⠀⠀⠀⠀
+⠀⡜⢉⠆⠀⣿⣇⡀⠠⠀⠔⠐⠛⠊⠈⠀⠀⠀⠀⠓⢄⡀⠀⠀⠈⠳⢄⡀⠀⠀⠀
+⠀⠉⠻⢷⡧⠽⡏⠀⠀⠀⠀⠀⠀⠀⠰⡄⠀⠀⠀⠀⠀⠀⠈⠒⠀⢀⠖⠁⠀⠀⠀
+⠀⠀⠀⠀⠀⣇⠀⠀⠀⠸⠁⠀⠀⠀⠀⠀⠹⡄⠀⠀⠀⠀⠀⠀⡴⠃⠀⠀⠀⠀⠀
+⠀⠀⠀⣀⢉⠂⠀⠀⠀⠆⠀⠀⠀⠀⠀⠀⠀⠀⠣⡄⠀⠀⢀⡾⠁⠀⠀⠀⠀⠀⠀
+⠀⠀⡠⢁⡏⠀⠀⢠⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠤⠋⣴⠁⠀⠀⠀⠀⠀⠀⠀
+⠀⣠⠃⡜⠀⠀⠀⠀⣀⣴⠦⣒⡤⡶⠒⠂⠂⠁⠁⠀⢰⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠸⠥⠴⠿⠷⣷⣟⠋⠁⠀⠀⢘⡌⠀⠀⠀⠀⠀⠀⠀⣾⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠘⡇⠀⠀⠀⠀⢸⠃⠀⠀⠀⠀⠀⠀⠀⠰⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+"#;
 
 // Renders `HOT_GIRL` pinned to the bottom-right of `area`, cropped
 // from the top/left when the area is too small to show it in full.
@@ -193,7 +226,7 @@ fn bottom_right_rect(width: u16, height: u16, area: Rect) -> Rect {
 /// bottom portion (the part otherwise hidden behind the directions
 /// bar) stays visible.
 pub fn render_diva_top(frame: &mut Frame, area: Rect) {
-    let lines: Vec<&str> = DIVA_LOGO_TOP.lines().filter(|l| !l.is_empty()).collect();
+    let lines: Vec<&str> = ASTOLFO_TOP.lines().filter(|l| !l.is_empty()).collect();
     let art_height: u16 = lines.len() as u16;
     let art_width: u16 = lines.iter().map(|l| l.chars().count()).max().unwrap_or(0) as u16;
 
@@ -230,7 +263,7 @@ pub fn render_diva_top(frame: &mut Frame, area: Rect) {
 }
 
     pub fn render_diva_bottom(frame: &mut Frame, area: Rect) {
-    let lines: Vec<&str> = DIVA_LOGO_BOTTOM.lines().filter(|l| !l.is_empty()).collect();
+    let lines: Vec<&str> = ASTOLFO_BOTTOM.lines().filter(|l| !l.is_empty()).collect();
     let art_height: u16 = lines.len() as u16;
     let art_width: u16 = lines.iter().map(|l| l.chars().count()).max().unwrap_or(0) as u16;
 

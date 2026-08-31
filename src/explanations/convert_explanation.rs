@@ -37,8 +37,8 @@ pub fn explain_codec_list(width: u16, height: u16) -> Paragraph<'static> {
         styles::left_directions_transparent(width, height)
             .render(
                 format!(
-                    "{PINK}\u{1F3C3} H.264 / libx264{RESET} {WHITE}(fast){RESET} : {GREY}near-universal playback, larger files, quick encode{RESET}\n\
-                     {PINK}\u{1F40C} H.265 / libx265{RESET} {WHITE}(small){RESET}  : {GREY}~50% smaller at same quality, slower encode, less universal support{RESET}"
+                    "{PINK}\u{1F3C3} H.264 / libx264{RESET} {WHITE}(fast){RESET} : {GREY}near-universal playback, larger files, quick encode.{RESET}\n\
+                     {PINK}\u{1F40C} H.265 / libx265{RESET} {WHITE}(small){RESET}  : {GREY}~50% smaller at same quality, slower encode, less universal support.{RESET}"
                 ).as_str()
             )
             .as_bytes()
