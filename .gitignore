@@ -1,4 +1,5 @@
 /target
 /ffmpeg
+/ffmpeg.rar
 /log/*
 src/hidden.rs

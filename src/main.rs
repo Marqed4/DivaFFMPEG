@@ -33,10 +33,7 @@ use implementations::{
     TrimState, TrimField, MergeState, MergeField,
 };
 
-use crate::home::HomeState::Video;
-
 //                      <-- SCENE STATE -->
-
 // Tracks exactly which screen is live at any given time. Using a single enum
 // instead of several independent bools makes it structurally impossible for
 // two scenes to render (or receive key input) in the same frame.
