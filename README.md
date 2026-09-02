@@ -6,10 +6,9 @@
 
   <h1>𝐷𝑖𝑣𝑎 𝐹𝐹𝑀𝑃𝐸𝐺</h1>
   <p>A terminal UI wrapper around ffmpeg, because typing flags is beneath her</p>
+  <p>Convert, compress, trim, and merge your video. Point, select, done.</p>
+  <p align="center"><img src="/examples/fontpage.gif" /></p>
   <br/>
-</div>
-<div align="center">
-  Convert, compress, trim, and merge your video. Point, select, done.
 </div>
 
 ---
@@ -26,6 +25,7 @@
 | <p align="center"><img src="H;/image_placeholder3" /></p> |
 | <p align="center"><strong>Audio processing</strong><br/>In progress.</p> |
 | <p align="center"><img src="H;/image_placeholder4" /></p> |
+
 ---
 
 <h2 align="center">Features</h2>
