@@ -1,14 +1,11 @@
 <div align="center">
   <br/>
-  <p>
-    <img src="H;/image_placeholder1" title="DivaFFMPEG" alt="DivaFFMPEG logo" width="100" />
-  </p>
-
-  <h1>𝐷𝑖𝑣𝑎 𝐹𝐹𝑀𝑃𝐸𝐺</h1>
-  <p>A terminal UI wrapper around ffmpeg, because typing flags is beneath her</p>
-  <p>Convert, compress, trim, and merge your video. Point, select, done.</p>
-  <p align="center"><img src="/examples/fontpage.gif" /></p>
-  <br/>
+    <img src="/examples/diva_icon.gif" title="DivaFFMPEG" alt="DivaFFMPEG logo" width="200" />
+    <h1>𝐷𝑖𝑣𝑎 𝐹𝐹𝑀𝑃𝐸𝐺</h1>
+    <p>A terminal UI wrapper around ffmpeg, because typing flags is beneath her</p>
+    <p>Convert, compress, trim, and merge your video. Point, select, done.</p>
+    <p align="center"><img src="/examples/frontpage.gif" /></p>
+    <br/>
 </div>
 
 ---
@@ -17,12 +14,10 @@
 
 |  |
 |---|
-| <p align="center"><strong>Introduction</strong><br/>Welcome screen, no surprises.</p> |
 | <p align="center"><strong>Image processing</strong><br/>In progress.</p> |
 | <p align="center"><img src="H;/image_placeholder5" /></p> |
 | <p align="center"><strong>Video processing</strong><br/>Convert, compress, trim, merge, all in one place.</p> |
-| <p align="center"><img src="H;/image_placeholder2" /></p> |
-| <p align="center"><img src="H;/image_placeholder3" /></p> |
+| <p align="center"><img src="/examples/video_tools.gif" /></p> |
 | <p align="center"><strong>Audio processing</strong><br/>In progress.</p> |
 | <p align="center"><img src="H;/image_placeholder4" /></p> |
 
