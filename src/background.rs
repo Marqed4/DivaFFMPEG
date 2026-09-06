@@ -92,6 +92,7 @@ pub const HOT_GIRL: &str = r#"
 ⠀⠀⠀⠀⠀⠀⠀⠀⡇⠀⠀⡸⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠞⠀⠀⠀⠀⠀⠀⠀⠀⠀
 "#;
 
+//                      ¡WARNING PRESERVE WHITESPACE!
 pub const FELIX_ARGYLE: &str = r#"⠀⠀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠊⢣⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡴⠉⢠⠘⢆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
@@ -134,7 +135,8 @@ pub const FELIX_ARGYLE: &str = r#"⠀⠀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀�
 ⠀⠀⠀⠀⠀⠀⠀⢠⠟⠀⠀⢀⣞⣀⠤⢺⠷⠒⠒⡄⢀⠏⠀⠀⠀⠀⠀⢀⡎⢻⣏⢹⡀⠀⠀⠀⠀⠀⠀⠀⢱⣰⣃⠀⠀⠀⠉⠓⠂
 "#;
 
-pub const EMO_POP: &str = r#"
+//                      ¡WARNING PRESERVE WHITESPACE!
+pub const EMO_POP_TOP: &str = r#"
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠶⣶⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⢠⠐⠦⣆⣄⡀⡠⣄⣴⣲⣢⢵⣞⠀⠀⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠣⡀⠀⣩⣟⡾⣿⣻⣿⣿⡿⢿⡿⣧⣼⡾⡡⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
@@ -152,6 +154,17 @@ pub const EMO_POP: &str = r#"
 ⠀⠀⠀⣷⣀⣀⡡⠤⠾⠿⠯⠭⠭⠭⠭⢶⣯⡗⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠉⠛⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡾⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⣸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+"#;
+
+/*
+
+This is the middle section that we rendered
+in specifically on the start page paragraph.
+
+⠀⠀⠀⠀⠀⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠻⡇⠀⠀⠀
+*/
+
+pub const EMO_POP_BOTTOM: &str = r#"
 ⠀⠀⠀⠀⠀⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠻⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⣴⣇⠀⢦⠀⠀⠀⠀⠀⠀⠀⢹⣤⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⡜⣿⡿⠀⠸⣄⠀⠀⠀⠀⠀⠀⠀⢿⠙⠦⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
@@ -262,7 +275,7 @@ pub fn render_diva_top(frame: &mut Frame, area: Rect) {
     frame.render_widget(bg, target);
 }
 
-    pub fn render_diva_bottom(frame: &mut Frame, area: Rect) {
+pub fn render_diva_bottom(frame: &mut Frame, area: Rect) {
     let lines: Vec<&str> = ASTOLFO_BOTTOM.lines().filter(|l| !l.is_empty()).collect();
     let art_height: u16 = lines.len() as u16;
     let art_width: u16 = lines.iter().map(|l| l.chars().count()).max().unwrap_or(0) as u16;
@@ -273,6 +286,74 @@ pub fn render_diva_top(frame: &mut Frame, area: Rect) {
 
     // If the art is taller than available space, crop rows off the TOP
     // so the bottom half (what was being clipped) becomes visible.
+    let visible_lines: Vec<&str> = if art_height > avail_height {
+        let skip: usize = (art_height - avail_height) as usize;
+        lines.into_iter().skip(skip).collect()
+    } else {
+        lines
+    };
+
+    let cropped_height: u16 = visible_lines.len() as u16;
+    let render_width: u16 = art_width.min(avail_width);
+
+    let target: Rect = centered_rect(render_width, cropped_height, area);
+
+    let text: Text<'_> = Text::from(
+        visible_lines
+            .into_iter()
+            .map(Line::from)
+            .collect::<Vec<_>>(),
+    );
+
+    let bg: Paragraph<'_> = Paragraph::new(text)
+        .style(Style::default().fg(Color::Rgb(90, 90, 100)))
+        .alignment(Alignment::Center);
+
+    frame.render_widget(bg, target);
+}
+
+pub fn render_emo_pop_top(frame: &mut Frame, area: Rect) {
+    let lines: Vec<&str> = EMO_POP_TOP.lines().filter(|l| !l.is_empty()).collect();
+    let art_height: u16 = lines.len() as u16;
+    let art_width: u16 = lines.iter().map(|l| l.chars().count()).max().unwrap_or(0) as u16;
+
+    let avail_height: u16 = area.height;
+    let avail_width: u16 = area.width;
+
+    let visible_lines: Vec<&str> = if art_height > avail_height {
+        let skip: usize = (art_height - avail_height) as usize;
+        lines.into_iter().skip(skip).collect()
+    } else {
+        lines
+    };
+
+    let cropped_height: u16 = visible_lines.len() as u16;
+    let render_width: u16 = art_width.min(avail_width);
+
+    let target:Rect = centered_rect(render_width, cropped_height, area);
+
+    let text: Text<'_> = Text::from(
+        visible_lines
+            .into_iter()
+            .map(Line::from)
+            .collect::<Vec<_ >>(),
+    );
+
+    let bg: Paragraph<'_> = Paragraph::new(text)
+        .style(Style::default().fg(Color::Rgb(90, 90, 100)))
+        .alignment(Alignment::Center);
+
+    frame.render_widget(bg, target);
+}
+
+pub fn render_emo_pop_bottom(frame: &mut Frame, area: Rect) {
+    let lines: Vec<&str> = EMO_POP_BOTTOM.lines().filter(|l| !l.is_empty()).collect();
+    let art_height: u16 = lines.len() as u16;
+    let art_width: u16 = lines.iter().map(|l| l.chars().count()).max().unwrap_or(0) as u16;
+
+    let avail_height: u16 = area.height;
+    let avail_width: u16 = area.width;
+
     let visible_lines: Vec<&str> = if art_height > avail_height {
         let skip: usize = (art_height - avail_height) as usize;
         lines.into_iter().skip(skip).collect()

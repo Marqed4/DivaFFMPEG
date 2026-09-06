@@ -175,6 +175,27 @@ fn field_block<F: FieldSet>(field: F, focused: F, editing: bool) -> Block<'stati
         .title(field.label())
 }
 
+/// Widest tab row ("Convert Guide | Compress Guide | ...") plus a little slack.
+/// Above this width the art can climb past the tab rows without colliding.
+const TABS_RESERVED_COLS: u16 = 62;
+
+/// The art is taller than `inner[6]`, so it loses its head when it only gets
+/// that slot. Hand it the blank rows above too: always the explanation/UI band
+/// (`inner[5]`), and on wide terminals the gap + tab rows as well, since the
+/// tabs never reach that far right. The rect the art actually draws into stays
+/// art-width and right-aligned, so nothing on the left is overwritten.
+fn art_area(inner: &[Rect]) -> Rect {
+    let top: Rect = if inner[6].width >= TABS_RESERVED_COLS + 34 { inner[2] } else { inner[5] };
+    let bottom: Rect = inner[6];
+
+    Rect {
+        x: bottom.x,
+        y: top.y,
+        width: bottom.width,
+        height: bottom.y + bottom.height - top.y,
+    }
+}
+
 fn render_path_field<F: FieldSet>(frame: &mut Frame<'_>, field: F, focused: F, editing: bool, text_area: &TextArea<'static>, area: Rect) {
     let block = field_block(field, focused, editing);
     let inner = block.inner(area);
@@ -660,6 +681,6 @@ pub fn render(
     frame.render_widget(selection_guide, inner[1]);
     frame.render_widget(selectable_tabs, inner[3]);
     frame.render_widget(explanation_tabs, inner[4]);
-    background::render_bottom_right(frame, inner[6]);
+    background::render_bottom_right(frame, art_area(&inner));
     frame.render_widget(component::social_footer_hyperlinks(inner[7].width, inner[7].height), inner[7]);
 }
