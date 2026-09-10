@@ -9,6 +9,7 @@ use ratatui::widgets::*;
 use crate::explanations;
 use crate::background;
 use crate::component;
+use crate::home::HomeState::Video;
 use crate::styles;
 use crate::implementations::{
     FieldSet, FfmpegJob,
@@ -16,6 +17,7 @@ use crate::implementations::{
     CompressField, CompressState, crf_quality_label, crf_ratio,
     TrimField, TrimState,
     MergeField, MergeState,
+    ExtractionField, ExtractionState,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -29,23 +31,27 @@ pub enum VideoProcessingState {
     ExplainTrim,
     Merge,
     ExplainMerge,
+    Extraction,
+    ExplainExtraction,
 }
 
 //                      <-- SELECTABLES -->
 impl VideoProcessingState {
-    const SELECTABLES: [VideoProcessingState; 5] = [
+    const SELECTABLES: [VideoProcessingState; 6] = [
         VideoProcessingState::Default,
         VideoProcessingState::Convert,
         VideoProcessingState::Compress,
         VideoProcessingState::Trim,
         VideoProcessingState::Merge,
+        VideoProcessingState::Extraction
     ];
 
-    const EXPLANATIONS: [VideoProcessingState; 4] = [
+    const EXPLANATIONS: [VideoProcessingState; 5] = [
         VideoProcessingState::ExplainConvert,
         VideoProcessingState::ExplainCompress,
         VideoProcessingState::ExplainTrim,
         VideoProcessingState::ExplainMerge,
+        VideoProcessingState::ExplainExtraction,
     ];
 
     fn label(&self) -> &'static str {
@@ -59,6 +65,8 @@ impl VideoProcessingState {
             Self::ExplainTrim => "Trim Guide",
             Self::Merge => "   Merge   ",
             Self::ExplainMerge => "Merge Guide",
+            Self::Extraction => "Frame Extraction",
+            Self::ExplainExtraction => "Frame Extraction Guide",
         }
     }
 }
@@ -75,11 +83,11 @@ impl DirectionsMenuState {
     }
 
     pub fn next(&mut self) {
-        self.selected_column = (self.selected_column + 1) % 4;
+        self.selected_column = (self.selected_column + 1) % 5;
     }
 
     pub fn previous(&mut self) {
-        self.selected_column = if self.selected_column == 0 { 3 } else { self.selected_column - 1 };
+        self.selected_column = if self.selected_column == 0 { 4 } else { self.selected_column - 1 };
     }
 
     pub fn above(&mut self) {
@@ -260,6 +268,7 @@ pub fn render(
     compress_state: &mut CompressState,
     trim_state: &mut TrimState,
     merge_state: &mut MergeState,
+    extraction_state: &mut ExtractionState,
 ) {
     let size: Rect = frame.area();
 
@@ -676,6 +685,67 @@ pub fn render(
             frame.render_widget(explanations::explain_merge_outro_line(rows[2].width, rows[2].height), rows[2]);
             frame.render_widget(explanations::explain_merge_format_list(cols[0].width, cols[0].height), cols[0]);
         },
+        VideoProcessingState::Extraction => {
+            extraction_state.poll_job();
+
+            let rows: Rc<[Rect]> = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(1),  // rows[0]: intro line
+                Constraint::Length(1),  // rows[1]: status line
+                Constraint::Length(1),  // rows[2]: empty/unused space
+            ])
+            .split(inner[5]);
+
+            let cols: Rc<[Rect]> = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage(60), // cols[0]: fields + progress
+                Constraint::Percentage(40), // cols[1]: art
+            ])
+            .split(inner[6]);
+
+            render_intro_and_status(
+                frame, &rows, extraction_state.job(), "extracting",
+                "Fill in the fields, then focus ▶ extract and press '\x1b[38;5;205m\x1b[1mENTER\x1b[22m\x1b[39m'.",
+            );
+
+            let field_area: Rc<[Rect]> = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(3),  // field_area[0]: input path (own row)
+                Constraint::Length(3),  // field_area[1]: output path (own row)
+                Constraint::Length(3),  // field_area[2]: start/end/format/fps/run
+                Constraint::Length(3),  // field_area[3]: progress gauge
+            ])
+            .split(cols[0]);
+
+            let option_cols: Rc<[Rect]> = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Fill(1), // start
+                Constraint::Fill(1), // end
+                Constraint::Fill(1), // format
+                Constraint::Fill(1), // fps
+                Constraint::Fill(1), // run
+            ])
+            .split(field_area[2]);
+
+            let focused = extraction_state.menu.focus_field();
+            let editing = extraction_state.menu.editing;
+
+            render_path_field(frame, ExtractionField::Input, focused, editing, &extraction_state.input_path, field_area[0]);
+            render_path_field(frame, ExtractionField::OutputPath, focused, editing, &extraction_state.output_file_path, field_area[1]);
+
+            render_path_field(frame, ExtractionField::Start, focused, editing, &extraction_state.start_time, option_cols[0]);
+            render_path_field(frame, ExtractionField::End, focused, editing, &extraction_state.end_time, option_cols[1]);
+            render_value_field(frame, ExtractionField::Format, focused, editing, extraction_state.format.label(), option_cols[2]);
+            render_value_field(frame, ExtractionField::Fps, focused, editing, extraction_state.fps.label(), option_cols[3]);
+            render_value_field(frame, ExtractionField::Run, focused, editing, ExtractionField::Run.label(), option_cols[4]);
+
+            render_progress_gauge(frame, field_area[3], extraction_state.job());
+        },
+        VideoProcessingState::ExplainExtraction => {},
     }
 
     frame.render_widget(selection_guide, inner[1]);

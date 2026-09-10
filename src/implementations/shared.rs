@@ -256,6 +256,27 @@ pub fn parse_tagged_timestamp(line: &str, tag: &str) -> Option<f64> {
     parse_timestamp(&rest[..end])
 }
 
+/// Formats seconds back into "HH:MM:SS", the same shape `parse_timestamp` reads.
+pub fn format_timestamp(secs: f64) -> String {
+    let total = secs.max(0.0).round() as u64;
+    format!("{:02}:{:02}:{:02}", total / 3600, (total % 3600) / 60, total % 60)
+}
+
+/// Blocks briefly to ask ffmpeg for a clip's real length: `-i` alone with no
+/// output makes ffmpeg print its "Duration: ..." metadata line and exit
+/// immediately, so this is cheap enough to call right before running a job.
+pub fn probe_duration(input: &str) -> Option<f64> {
+    let output = Command::new(ffmpeg_binary())
+        .args(["-i", input])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .output()
+        .ok()?;
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    stderr.lines().find_map(|line| parse_tagged_timestamp(line, "Duration: "))
+}
+
 /// Strips a leading/trailing `"` (or `'`) pair, e.g. from Windows "Copy as path".
 /// Without this the quote chars end up as literal bytes in the path arg passed to ffmpeg.
 pub fn strip_quotes(s: &str) -> String {
@@ -334,6 +355,32 @@ impl ConvertFps {
     pub fn value(&self) -> Option<u32> {
         match self {
             Self::Original => None, Self::Fps120 => Some(120), Self::Fps60 => Some(60), Self::Fps30 => Some(30), Self::Fps24 => Some(24),
+        }
+    }
+}
+
+/// Extraction pulls stills off a video, so its rates are frame-sampling
+/// intervals (one still per N seconds), not encode fps like ConvertFps.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ExtractionFps { EveryFrame, OnePerSecond, OneEvery2s, OneEvery5s, OneEvery10s }
+
+impl ExtractionFps {
+    pub const ALL: [ExtractionFps; 5] = [
+        ExtractionFps::EveryFrame, ExtractionFps::OnePerSecond, ExtractionFps::OneEvery2s,
+        ExtractionFps::OneEvery5s, ExtractionFps::OneEvery10s,
+    ];
+
+    pub fn label(&self) -> &'static str {
+        match self {
+            Self::EveryFrame => "🔳 every frame", Self::OnePerSecond => "1/sec",
+            Self::OneEvery2s => "1/2s", Self::OneEvery5s => "1/5s", Self::OneEvery10s => "1/10s",
+        }
+    }
+
+    pub fn value(&self) -> Option<f64> {
+        match self {
+            Self::EveryFrame => None, Self::OnePerSecond => Some(1.0), Self::OneEvery2s => Some(0.5),
+            Self::OneEvery5s => Some(0.2), Self::OneEvery10s => Some(0.1),
         }
     }
 }
