@@ -125,7 +125,8 @@ fn main() -> Result<(), io::Error> {
 
                     let intro_block = Block::default()
                         .borders(Borders::ALL)
-                        .title("| Diva FFMPEG: Exit |")
+                        .border_type(BorderType::Rounded)
+                        .title("✦ Diva FFMPEG: Exit ✦")
                         .title_alignment(Alignment::Center)
                         .bold();
 
@@ -168,7 +169,8 @@ fn main() -> Result<(), io::Error> {
 
                     let intro_block = Block::default()
                         .borders(Borders::ALL)
-                        .title("| Diva FFMPEG |")
+                        .border_type(BorderType::Rounded)
+                        .title("✦ Diva FFMPEG ✦")
                         .title_alignment(Alignment::Center)
                         .bold();
 
@@ -231,7 +233,8 @@ fn main() -> Result<(), io::Error> {
 
                     let wip_block = Block::default()
                         .borders(Borders::ALL)
-                        .title("Diva FFMPEG: Image Processing")
+                        .border_type(BorderType::Rounded)
+                        .title("✦ Diva FFMPEG: Image Processing ✦")
                         .title_alignment(Alignment::Center)
                         .bold();
 
@@ -256,7 +259,8 @@ fn main() -> Result<(), io::Error> {
 
                     let wip_block = Block::default()
                         .borders(Borders::ALL)
-                        .title("Diva FFMPEG: Audio Processing")
+                        .border_type(BorderType::Rounded)
+                        .title("✦ Diva FFMPEG: Audio Processing ✦")
                         .title_alignment(Alignment::Center)
                         .bold();
 

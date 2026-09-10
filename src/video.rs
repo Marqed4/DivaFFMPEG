@@ -179,6 +179,7 @@ fn field_block<F: FieldSet>(field: F, focused: F, editing: bool) -> Block<'stati
 
     Block::default()
         .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
         .border_style(style)
         .title(field.label())
 }
@@ -254,7 +255,7 @@ fn render_intro_and_status(frame: &mut Frame<'_>, rows: &[Rect], job: Option<&Ff
 fn render_progress_gauge(frame: &mut Frame<'_>, area: Rect, job: Option<&FfmpegJob>) {
     let ratio = job.map(|j| j.ratio()).unwrap_or(0.0);
     let gauge = Gauge::default()
-        .block(Block::default().borders(Borders::ALL).title("progress"))
+        .block(Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title("♡ progress ♡"))
         .gauge_style(Style::default().fg(Color::Rgb(255, 133, 200)))
         .ratio(ratio);
     frame.render_widget(gauge, area);
@@ -281,7 +282,8 @@ pub fn render(
 
     let video_block = Block::default()
         .borders(Borders::ALL)
-        .title("| Diva FFMPEG: Video Processing |")
+        .border_type(BorderType::Rounded)
+        .title("✦ Diva FFMPEG: Video Processing ✦")
         .title_alignment(Alignment::Center)
         .bold();
 

@@ -3,6 +3,7 @@ use ansi_to_tui::IntoText as _;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 
+use crate::background;
 use crate::component;
 use crate::styles;
 
@@ -26,9 +27,9 @@ impl HomeState {
     fn label(&self) -> &'static str {
         match self {
             Self::Default => "default",
-            Self::Image => "Image Processing",
-            Self::Video => "Video Processing",
-            Self::Audio => "Audio Processing",
+            Self::Image => "🖼️ Image Processing",
+            Self::Video => "🎬 Video Processing",
+            Self::Audio => "🎵 Audio Processing",
         }
     }
 }
@@ -69,7 +70,8 @@ pub fn render(frame: &mut Frame<'_>, _state: HomeState, menu: &HomeMenuState) {
 
     let home_block = Block::default()
         .borders(Borders::ALL)
-        .title("| Diva FFMPEG: Home Menu |")
+        .border_type(BorderType::Rounded)
+        .title("✦ Diva FFMPEG: Home Menu ✦")
         .title_alignment(Alignment::Center)
         .bold();
 
@@ -121,5 +123,6 @@ pub fn render(frame: &mut Frame<'_>, _state: HomeState, menu: &HomeMenuState) {
 
     frame.render_widget(selection_guide, inner[1]);
     frame.render_widget(directions_tabs, centered_area_below);
+    background::render_felix_bottom_right(frame, inner[4]);
     frame.render_widget(component::social_footer_hyperlinks(inner[5].width, inner[5].height), inner[5]);
 }
