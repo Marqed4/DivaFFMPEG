@@ -49,6 +49,14 @@ pub fn center_directions(width: u16, height: u16) -> Style {
     .width(width)
     .height(height)
 }
+
+pub fn center_directions_transparent(width: u16, height: u16) -> Style {
+    return Style::new()
+    .bold()
+    .align(Position::Center)
+    .width(width)
+    .height(height)
+}
 #[allow(unused)]
 pub fn descriptions() -> Style {
     return Style::new()
