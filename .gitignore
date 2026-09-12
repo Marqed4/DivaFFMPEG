@@ -2,5 +2,5 @@
 /ffmpeg
 /ffmpeg.rar
 /log/*
-src/hidden.r
+src/hidden.rs
 src/resources.html

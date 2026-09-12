@@ -38,7 +38,7 @@ pub enum ExtractionField { Input, Start, End, Fps, Format, OutputPath, Run }
 impl FieldSet for ExtractionField {
     const ALL: &'static [ExtractionField] = &[
         ExtractionField::Input, ExtractionField::OutputPath, ExtractionField::Start,
-        ExtractionField::End, ExtractionField::Fps, ExtractionField::Format, ExtractionField::Run,
+        ExtractionField::End, ExtractionField::Format, ExtractionField::Fps, ExtractionField::Run,
     ];
 
     fn label(&self) -> &'static str {

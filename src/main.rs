@@ -126,7 +126,7 @@ fn main() -> Result<(), io::Error> {
                     let intro_block = Block::default()
                         .borders(Borders::ALL)
                         .border_type(BorderType::Rounded)
-                        .title("✦ Diva FFMPEG: Exit ✦")
+                        .title("✦  Diva FFMPEG: Exit  ✦")
                         .title_alignment(Alignment::Center)
                         .bold();
 
@@ -170,7 +170,7 @@ fn main() -> Result<(), io::Error> {
                     let intro_block = Block::default()
                         .borders(Borders::ALL)
                         .border_type(BorderType::Rounded)
-                        .title("✦ Diva FFMPEG ✦")
+                        .title("✦  Diva FFMPEG  ✦")
                         .title_alignment(Alignment::Center)
                         .bold();
 
@@ -180,25 +180,97 @@ fn main() -> Result<(), io::Error> {
                     let inner: Rc<[Rect]> = Layout::default()
                         .direction(Direction::Vertical)
                         .constraints([
-                            Constraint::Length(6),    // inner[0]: welcome text
-                            Constraint::Length(16),   // inner[1]: art
-                            Constraint::Length(1),    // inner[2]: directions bar
-                            Constraint::Length(16),   // inner[3]: art
+                            Constraint::Length(8),    // inner[0]: project info blurb
+                            Constraint::Length(1),    // inner[1]: directions bar, right up top
+                            Constraint::Length(16),   // inner[2]: art (native 16 rows) + info box
+                            Constraint::Length(16),   // inner[3]: art (native 16 rows)
                             Constraint::Length(1),    // inner[4]: footer links
                         ])
                         .split(intro_inner);
 
-                    background::render_diva_top(frame, inner[1]); // pass the middle chunk, not `size`
-                    background::render_diva_bottom(frame, inner[3]); // pass the middle chunk, not `size`
+                    // Astolfo's native art is only ~42 cols wide, so giving it the full row leaves a
+                    // wide dead-space column beside it on anything but a narrow terminal. Splitting
+                    // each art row into an art column + a text column fills that space with copy
+                    // instead of blank cells, and keeps the art itself centered within its own column.
+                    const ART_COL_WIDTH: u16 = 46;
+
+                    let art_row_top: Rc<[Rect]> = Layout::default()
+                        .direction(Direction::Horizontal)
+                        .constraints([Constraint::Length(ART_COL_WIDTH), Constraint::Fill(1)])
+                        .split(inner[2]);
+
+                    let art_row_bottom: Rc<[Rect]> = Layout::default()
+                        .direction(Direction::Horizontal)
+                        .constraints([Constraint::Length(ART_COL_WIDTH), Constraint::Fill(1)])
+                        .split(inner[3]);
+
+                    background::render_diva_top(frame, art_row_top[0]);
+                    background::render_diva_bottom(frame, art_row_bottom[0]);
+
+                    // One shared box for both blurbs, sized to its content (not the full
+                    // art-column height) and pinned to the top of the column, so there's no
+                    // dead space stretching it down and the eye lands on the directions first.
+                    const INFO_BOX_HEIGHT: u16 = 11;
+                    let info_area = Rect {
+                        x: art_row_top[1].x,
+                        y: art_row_top[1].y,
+                        width: art_row_top[1].width,
+                        height: INFO_BOX_HEIGHT,
+                    };
+
+                    let info_block = Block::default()
+                        .borders(Borders::ALL)
+                        .border_type(BorderType::Rounded)
+                        .style(Style::default().fg(Color::Rgb(200, 160, 255)));
+                    let info_inner = info_block.inner(info_area);
+                    frame.render_widget(info_block, info_area);
+
+                    let info_rows: Rc<[Rect]> = Layout::default()
+                        .direction(Direction::Vertical)
+                        .constraints([
+                            Constraint::Length(1), // "What is FFmpeg?" heading
+                            Constraint::Length(3), // FFmpeg blurb
+                            Constraint::Length(1), // gap
+                            Constraint::Length(1), // "What is Diva FFMPEG?" heading
+                            Constraint::Length(3), // Diva FFMPEG blurb
+                        ])
+                        .split(info_inner);
+
+                    let ffmpeg_heading = Paragraph::new("♦ What is FFmpeg? ♦")
+                        .style(Style::default().fg(Color::Rgb(200, 160, 255)).add_modifier(Modifier::BOLD))
+                        .alignment(Alignment::Center);
+
+                    let ffmpeg_info = Paragraph::new(
+                        "FFmpeg is the multimedia Swiss-army knife: it converts, transcodes, filters, and streams almost any audio or video format that exists, all through a dense wall of command-line flags most people never learn.",
+                    )
+                    .style(Style::default().fg(Color::Rgb(200, 160, 255)).add_modifier(Modifier::BOLD))
+                    .alignment(Alignment::Center)
+                    .wrap(Wrap { trim: true });
+
+                    let project_heading = Paragraph::new("♦ What is Diva FFMPEG? ♦")
+                        .style(Style::default().fg(Color::Rgb(255, 133, 200)).add_modifier(Modifier::BOLD))
+                        .alignment(Alignment::Center);
+
+                    let project_info = Paragraph::new(
+                        "Diva FFMPEG puts that power behind a keyboard-driven menu: pick your inputs, watch a real progress bar, and skip the manpage archaeology. Convert, compress, trim, and merge, no flags required.",
+                    )
+                    .style(Style::default().fg(Color::Rgb(255, 133, 200)).add_modifier(Modifier::BOLD))
+                    .alignment(Alignment::Center)
+                    .wrap(Wrap { trim: true });
+
+                    frame.render_widget(ffmpeg_heading, info_rows[0]);
+                    frame.render_widget(ffmpeg_info, info_rows[1]);
+                    frame.render_widget(project_heading, info_rows[3]);
+                    frame.render_widget(project_info, info_rows[4]);
 
                     let introduction: Paragraph<'_> = Paragraph::new(styles::title(inner[0].width, inner[0].height).render(
-                        "Welcome to Diva FFMPEG! \nSlay your multimedia pipeline 💅 \nBy Marqed").as_bytes().into_text().unwrap());
+                        "Diva FFMPEG wraps ffmpeg in a terminal UI, because typing flags is beneath her. \nConvert, compress, trim, and merge video: point, select, done. \nSlay your multimedia pipeline 💅 \nBy Marqed").as_bytes().into_text().unwrap());
 
-                    let directions: Paragraph<'_> = Paragraph::new(styles::center_directions(inner[1].width, inner[1].height).blink().render(
+                    let directions: Paragraph<'_> = Paragraph::new(styles::center_directions_transparent(inner[1].width, inner[1].height).blink().render(
                         "Press '\x1b[38;5;218m\x1b[1mENTER\x1b[22m\x1b[39m' to get started OR '\x1b[38;5;205m\x1b[1mQ\x1b[22m\x1b[39m' to EXIT! 💋").as_bytes().into_text().unwrap());
 
                     frame.render_widget(introduction, inner[0]);
-                    frame.render_widget(directions, inner[2]);
+                    frame.render_widget(directions, inner[1]);
                     frame.render_widget(component::social_footer_hyperlinks(inner[4].width, inner[4].height), inner[4]);
                     footer_rect = Some(inner[4]);
 
@@ -234,7 +306,7 @@ fn main() -> Result<(), io::Error> {
                     let wip_block = Block::default()
                         .borders(Borders::ALL)
                         .border_type(BorderType::Rounded)
-                        .title("✦ Diva FFMPEG: Image Processing ✦")
+                        .title("✦  Diva FFMPEG: Image Processing  ✦")
                         .title_alignment(Alignment::Center)
                         .bold();
 
@@ -260,7 +332,7 @@ fn main() -> Result<(), io::Error> {
                     let wip_block = Block::default()
                         .borders(Borders::ALL)
                         .border_type(BorderType::Rounded)
-                        .title("✦ Diva FFMPEG: Audio Processing ✦")
+                        .title("✦  Diva FFMPEG: Audio Processing  ✦")
                         .title_alignment(Alignment::Center)
                         .bold();
 
@@ -450,6 +522,11 @@ fn main() -> Result<(), io::Error> {
                         },
 
                         //                      <-- HOME SCENE KEY EVENTS -->
+                        (Scene::Home, KeyCode::Esc) => {
+                            current_scene = Scene::Start;
+                            writeln!(_file, "State: '{:?}' at {} because '{:?}' was pressed.",
+                                current_scene, Utc::now().format("%H-%M-%S"), k.code)?;
+                        },
                         (Scene::Home, KeyCode::Left) | (Scene::Home, KeyCode::Char('a')) => home_menu.previous(),
                         (Scene::Home, KeyCode::Right) | (Scene::Home, KeyCode::Char('d')) => home_menu.next(),
                         (Scene::Home, KeyCode::Enter) => {

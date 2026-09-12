@@ -283,7 +283,7 @@ pub fn render(
     let video_block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .title("✦ Diva FFMPEG: Video Processing ✦")
+        .title("✦  Diva FFMPEG: Video Processing  ✦")
         .title_alignment(Alignment::Center)
         .bold();
 
@@ -747,7 +747,39 @@ pub fn render(
 
             render_progress_gauge(frame, field_area[3], extraction_state.job());
         },
-        VideoProcessingState::ExplainExtraction => {},
+        VideoProcessingState::ExplainExtraction => {
+            let rows: Rc<[Rect]> = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(1),  // rows[0]: intro line 1
+                Constraint::Length(1),  // rows[1]: intro line 2
+                Constraint::Length(1),  // rows[2]: outro line
+            ])
+            .split(inner[5]);
+
+            let cols: Rc<[Rect]> = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage(60), // cols[0]: format/fps lists
+                Constraint::Percentage(40), // cols[1]: art
+            ])
+            .split(inner[6]);
+
+            let explain_rows: Rc<[Rect]> = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(7), // explain_rows[0]: format list
+                Constraint::Length(3), // explain_rows[1]: fps list
+                Constraint::Fill(1),   // explain_rows[2]: unused space
+            ])
+            .split(cols[0]);
+
+            frame.render_widget(explanations::explain_extraction_intro_line_1(rows[0].width, rows[0].height), rows[0]);
+            frame.render_widget(explanations::explain_extraction_intro_line_2(rows[1].width, rows[1].height), rows[1]);
+            frame.render_widget(explanations::explain_extraction_outro_line(rows[2].width, rows[2].height), rows[2]);
+            frame.render_widget(explanations::explain_extraction_format_list(explain_rows[0].width, explain_rows[0].height), explain_rows[0]);
+            frame.render_widget(explanations::explain_extraction_fps_list(explain_rows[1].width, explain_rows[1].height), explain_rows[1]);
+        },
     }
 
     frame.render_widget(selection_guide, inner[1]);
