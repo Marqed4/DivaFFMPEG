@@ -103,7 +103,7 @@ pub fn render(frame: &mut Frame<'_>, _state: HomeState, menu: &HomeMenuState) {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Fill(1),   // inner[0] unused/empty space
-            Constraint::Length(3), // inner[1] selection guide
+            Constraint::Length(4), // inner[1] selection guide
             Constraint::Length(1), // inner[2] new line gap
             Constraint::Length(1), // inner[3] direction tabs
             Constraint::Fill(1),   // inner[4] unused/empty space
@@ -128,7 +128,8 @@ pub fn render(frame: &mut Frame<'_>, _state: HomeState, menu: &HomeMenuState) {
     let selection_guide: Paragraph<'_> = Paragraph::new(styles::center_directions_transparent(inner[1].width, inner[1].height).render(
         "Press '\x1b[38;5;218m\x1b[1mA\x1b[22m\x1b[39m' or '\x1b[38;5;218m\x1b[1mleft arrow-key\x1b[22m\x1b[39m' & '\x1b[38;5;218m\x1b[1mD\x1b[22m\x1b[39m' or '\x1b[38;5;218m\x1b[1mright arrow-key\x1b[22m\x1b[39m' \n \
         to MOVE THE SELECTION HIGHLIGHT. \n \
-        Press '\x1b[38;5;205m\x1b[1mENTER\x1b[22m\x1b[39m' to CONFIRM the SELECTION, '\x1b[38;5;205m\x1b[1mESC\x1b[22m\x1b[39m' to return to the PREVIOUS SCREEN, or '\x1b[38;5;205m\x1b[1mQ\x1b[22m\x1b[39m' to EXIT! 💋").as_bytes().into_text().unwrap());
+        Press '\x1b[38;5;205m\x1b[1mENTER\x1b[22m\x1b[39m' to CONFIRM the SELECTION, '\x1b[38;5;205m\x1b[1mESC\x1b[22m\x1b[39m' \n \
+        to return to the PREVIOUS SCREEN, or '\x1b[38;5;205m\x1b[1mQ\x1b[22m\x1b[39m' to EXIT! 💋").as_bytes().into_text().unwrap());
 
     let centered_area_below = Layout::default()
         .direction(Direction::Horizontal)

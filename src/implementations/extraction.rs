@@ -75,7 +75,7 @@ pub struct ExtractionState {
 impl ExtractionState {
     pub fn new() -> Self {
         Self {
-            input_path: new_path_field("C:/Users/you/clip_a.mov"),
+            input_path: new_path_field("C:/Users/you/video.mov"),
             output_file_path: new_path_field("C:/Users/you/frame_0001.jpg"),
             start_time: new_path_field("00:00:00"),
             end_time: new_path_field("00:00:10"),
